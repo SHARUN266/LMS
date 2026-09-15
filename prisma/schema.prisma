@@ -1,0 +1,279 @@
+// Prisma schema for AI Masai-Style LMS (Local SQLite)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model UserProfile {
+  id              String   @id @default("user_default")
+  name            String   @default("Learner")
+  targetRole      String   @default("BI / Analytics Engineer")
+  dailyStudyGoal  Int      @default(6) // Hours per day
+  currentStreak   Int      @default(1)
+  longestStreak   Int      @default(1)
+  totalStudyMins  Int      @default(0)
+  activeModuleId  String?
+  activeDayId     String?
+  xp              Int      @default(150)
+  level           Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Track {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String
+  modules     Module[]
+  createdAt   DateTime @default(now())
+}
+
+model Module {
+  id          String    @id @default(cuid())
+  trackId     String
+  track       Track     @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  order       Int
+  title       String
+  description String
+  icon        String    @default("database")
+  weeks       Week[]
+  projects    Project[]
+  createdAt   DateTime  @default(now())
+}
+
+model Week {
+  id          String   @id @default(cuid())
+  moduleId    String
+  module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  weekNumber  Int
+  title       String
+  days        Day[]
+  assessments Assessment[]
+  createdAt   DateTime @default(now())
+}
+
+model Day {
+  id          String             @id @default(cuid())
+  weekId      String
+  week        Week               @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  dayNumber   Int
+  title       String
+  objective   String
+  estimatedMins Int              @default(180)
+  isUnlocked  Boolean            @default(true)
+  isCompleted Boolean            @default(false)
+  score       Int?
+  lesson      Lesson?
+  practice    PracticeExercise[]
+  assignments Assignment[]
+  createdAt   DateTime           @default(now())
+}
+
+model Lesson {
+  id          String   @id @default(cuid())
+  dayId       String   @unique
+  day         Day      @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  title       String
+  content     String   // Markdown notes & theory
+  cheatSheet  String?  // Quick reference syntax
+  quickQuiz   String?  // JSON of 3 micro knowledge checks
+  createdAt   DateTime @default(now())
+}
+
+model PracticeExercise {
+  id          String   @id @default(cuid())
+  dayId       String
+  day         Day      @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  order       Int
+  title       String
+  difficulty  String   @default("Intermediate") // Beginner, Intermediate, Advanced
+  problem     String   // Problem statement
+  starterCode String?  // Initial code template
+  sampleData  String?  // JSON table schema / sample dataset
+  solution    String?  // Ideal query/code
+  hints       String?  // JSON array of progressive hints
+  createdAt   DateTime @default(now())
+}
+
+model Assignment {
+  id          String         @id @default(cuid())
+  dayId       String
+  day         Day            @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  title       String
+  type        String         @default("SQL") // SQL, PYTHON, CASE_STUDY, MIXED
+  description String
+  deadlineHours Int          @default(24)
+  rubric      String?        // JSON rubric breakdown
+  questions   AssignmentQuestion[]
+  submissions Submission[]
+  createdAt   DateTime       @default(now())
+}
+
+model AssignmentQuestion {
+  id           String     @id @default(cuid())
+  assignmentId String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  order        Int
+  category     String     @default("SQL")
+  prompt       String
+  starterCode  String?
+  sampleData   String?
+  weight       Int        @default(20)
+  createdAt    DateTime   @default(now())
+}
+
+model Submission {
+  id           String      @id @default(cuid())
+  assignmentId String
+  assignment   Assignment  @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  submittedCode String
+  notes        String?
+  status       String      @default("EVALUATED") // PENDING, EVALUATING, EVALUATED
+  evaluation   Evaluation?
+  createdAt    DateTime    @default(now())
+}
+
+model Evaluation {
+  id           String     @id @default(cuid())
+  submissionId String     @unique
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  score        Int        // 0 - 100
+  passed       Boolean    @default(true)
+  strengths    String     // JSON array of strengths
+  weakAreas    String     // JSON array of weak areas
+  rubricScores String     // JSON object with category scores
+  codeDiff     String?    // Improved code snippet
+  detailedFeedback String
+  remedialTasks String?   // JSON array of recommended remedial exercises
+  createdAt    DateTime   @default(now())
+}
+
+model RemedialDrill {
+  id          String   @id @default(cuid())
+  topic       String
+  title       String
+  difficulty  String   @default("Medium")
+  problem     String
+  starterCode String?
+  solution    String
+  isCompleted Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model Assessment {
+  id          String             @id @default(cuid())
+  weekId      String
+  week        Week               @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  title       String             @default("Monday Weekly Assessment")
+  durationMins Int               @default(90)
+  passingScore Int               @default(70)
+  questions   AssessmentQuestion[]
+  attempts    AssessmentAttempt[]
+  createdAt   DateTime           @default(now())
+}
+
+model AssessmentQuestion {
+  id           String     @id @default(cuid())
+  assessmentId String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  order        Int
+  type         String     @default("MCQ") // MCQ, CODE, CASE_STUDY
+  prompt       String
+  options      String?    // JSON array for MCQs
+  correctAnswer String?
+  starterCode  String?
+  rubric       String?
+  weight       Int        @default(10)
+  createdAt    DateTime   @default(now())
+}
+
+model AssessmentAttempt {
+  id           String     @id @default(cuid())
+  assessmentId String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  score        Int
+  passed       Boolean
+  answersJson  String     // Submitted answers
+  skillGaps    String     // JSON radar score by topic
+  feedback     String
+  timeTakenMins Int
+  createdAt    DateTime   @default(now())
+}
+
+model Project {
+  id          String              @id @default(cuid())
+  moduleId    String
+  module      Module              @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title       String
+  businessBrief String
+  durationDays Int                @default(7)
+  milestones  ProjectMilestone[]
+  submissions ProjectSubmission[]
+  createdAt   DateTime            @default(now())
+}
+
+model ProjectMilestone {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  dayNumber   Int      // 1 to 7
+  title       String
+  deliverable String
+  isCompleted Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model ProjectSubmission {
+  id          String             @id @default(cuid())
+  projectId   String
+  project     Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  githubUrl   String?
+  projectZip  String?
+  summaryText String
+  evaluation  ProjectEvaluation?
+  createdAt   DateTime           @default(now())
+}
+
+model ProjectEvaluation {
+  id            String            @id @default(cuid())
+  submissionId  String            @unique
+  submission    ProjectSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  overallScore  Int
+  technicalScore Int
+  businessScore Int
+  recruiterSummary String
+  feedback      String
+  createdAt     DateTime          @default(now())
+}
+
+model StudySession {
+  id          String   @id @default(cuid())
+  dayId       String?
+  durationMins Int
+  notes       String?
+  createdAt   DateTime @default(now())
+}
+
+model BacklogItem {
+  id          String   @id @default(cuid())
+  title       String
+  topic       String
+  dueOriginal DateTime
+  scheduledFor DateTime
+  isCompleted Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model MentorMessage {
+  id          String   @id @default(cuid())
+  sender      String   // "user" | "mentor"
+  message     String
+  context     String?  // module or assignment context
+  createdAt   DateTime @default(now())
+}
