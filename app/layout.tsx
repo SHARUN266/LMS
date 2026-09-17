@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export const metadata: Metadata = {
   title: "AI Masai-Style Career LMS | Job-Ready Bootcamp",
-  description: "Disciplined career training platform powered by Local Qwen 2.5 Coder",
+  description: "Disciplined career training platform powered by Gemini 2.0 Flash AI",
 };
 
 export default function RootLayout({
@@ -14,8 +15,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className="bg-[#090D16] text-slate-100 antialiased overflow-hidden">
-        <AppShell>{children}</AppShell>
+      <body className="overflow-hidden">
+        <TooltipProvider delay={300}>
+          <AppShell>{children}</AppShell>
+        </TooltipProvider>
       </body>
     </html>
   );

@@ -1,18 +1,24 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { askMentorQwen } from "@/lib/ollama";
+import { chatWithMentor, MentorMode } from "@/lib/ai";
+import { detectWeakTopics } from "@/lib/adaptive";
 
 export async function GET() {
-  const messages = await db.mentorMessage.findMany({
-    orderBy: { createdAt: "asc" },
-    take: 50,
-  });
-  return NextResponse.json({ messages });
+  try {
+    const messages = await db.mentorMessage.findMany({
+      orderBy: { createdAt: "asc" },
+      take: 50,
+    });
+    return NextResponse.json({ messages });
+  } catch (error: any) {
+    console.error("Error fetching mentor messages:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
 
 export async function POST(req: Request) {
   try {
-    const { message, context } = await req.json();
+    const { message, context, mode = "socratic" } = await req.json();
     if (!message) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
     }
@@ -36,8 +42,22 @@ export async function POST(req: Request) {
       content: m.message,
     }));
 
-    // Get response from Qwen 2.5 Coder
-    const aiResponse = await askMentorQwen(message, formattedHistory, context);
+    // Inject learner profile & real weak areas as rich context
+    let richContext = context || "Module 1: Advanced SQL for Analytics Engineering";
+    try {
+      const profile = await db.userProfile.findFirst();
+      const weakTopics = await detectWeakTopics();
+      const weakList = weakTopics.filter((t) => t.score < 75).map((t) => `${t.topic} (${t.score}%)`);
+
+      richContext = `${richContext}
+Student: ${profile?.name || "Learner"} (Target Role: ${profile?.targetRole || "BI / Analytics Engineer"}, Level: ${profile?.level || 1}, Streak: ${profile?.currentStreak || 1} Days)
+Identified Weak Topics to Reinforce: ${weakList.length > 0 ? weakList.join(", ") : "All core concepts proficient"}
+Selected Mentor Mode: ${mode.toUpperCase()}
+`;
+    } catch {}
+
+    // Get response from Gemini 2.0 Flash / Hybrid AI
+    const aiResponse = await chatWithMentor(message, formattedHistory, richContext, mode as MentorMode);
 
     // Save Mentor response
     const savedMentorMsg = await db.mentorMessage.create({
@@ -48,7 +68,7 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({ message: savedMentorMsg.message });
+    return NextResponse.json({ message: savedMentorMsg.message, mode });
   } catch (error: any) {
     console.error("Mentor chat error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

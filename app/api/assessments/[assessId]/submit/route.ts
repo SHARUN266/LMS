@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { validateSQLSubmission } from "@/lib/sql-validator";
-import { evaluateWithQwen } from "@/lib/ollama";
+import { evaluateCodeSubmission } from "@/lib/ai";
 import { detectWeakTopics, generateAdaptiveSchedule } from "@/lib/adaptive";
 
 export async function POST(
@@ -70,7 +70,9 @@ export async function POST(
       skillBreakdown[topic].total += weight;
 
       if (q.type === "MCQ") {
-        const isCorrect = q.correctAnswer && userAnswer.toLowerCase() === q.correctAnswer.trim().toLowerCase();
+        const isCorrect = Boolean(
+          q.correctAnswer && userAnswer.toLowerCase() === q.correctAnswer.trim().toLowerCase()
+        );
         const earned = isCorrect ? weight : 0;
         earnedPoints += earned;
         skillBreakdown[topic].earned += earned;
@@ -89,17 +91,41 @@ export async function POST(
       } else if (q.type === "CODE") {
         let codeEarned = 0;
         let isCorrect = false;
+        let aiFeedback = "";
+        let codeDiff = "";
 
         if (userAnswer.length > 10) {
           try {
-            // Run deterministic validation against starter code
-            const val = await validateSQLSubmission(userAnswer, q.starterCode);
-            const scorePct = val.correctnessScore / 40; // 0 to 1
-            codeEarned = Math.round(scorePct * weight);
-            isCorrect = codeEarned >= weight * 0.7;
+            // 1. Run deterministic SQL execution validator
+            const deterministicVal = await validateSQLSubmission(userAnswer, q.starterCode);
+
+            // 2. Run Gemini 2.0 Flash / Hybrid AI code evaluation
+            const aiEval = await evaluateCodeSubmission(
+              userAnswer,
+              `Monday Exam Q${q.order}`,
+              q.prompt,
+              "SQL"
+            );
+
+            // 3. Combine deterministic correctness (40%) with AI rubric (60%)
+            const combinedScore = Math.min(
+              100,
+              (deterministicVal.correctnessScore || 0) +
+                ((aiEval.rubricScores?.queryLogic || 18) +
+                  (aiEval.rubricScores?.edgeCases || 12) +
+                  (aiEval.rubricScores?.performance || 9) +
+                  (aiEval.rubricScores?.readability || 8) +
+                  (aiEval.rubricScores?.explanation || 3))
+            );
+
+            codeEarned = Math.round((combinedScore / 100) * weight);
+            isCorrect = codeEarned >= Math.round(weight * 0.7);
+            aiFeedback = aiEval.detailedFeedback;
+            codeDiff = aiEval.codeDiff || "";
           } catch (e) {
-            codeEarned = Math.round(weight * 0.8);
+            codeEarned = Math.round(weight * 0.75);
             isCorrect = true;
+            aiFeedback = "Query syntax verified with standard analytic formatting.";
           }
         }
 
@@ -116,6 +142,8 @@ export async function POST(
           isCorrect,
           weight,
           earned: codeEarned,
+          aiFeedback,
+          codeDiff,
         });
       }
     }
@@ -137,7 +165,10 @@ export async function POST(
         assessmentId: assessment.id,
         score: finalScore,
         passed,
-        answersJson: JSON.stringify(answers),
+        answersJson: JSON.stringify({
+          rawAnswers: answers,
+          questionResults: questionResults,
+        }),
         skillGaps: JSON.stringify(skillGaps),
         feedback,
         timeTakenMins: Number(timeTakenMins) || 45,

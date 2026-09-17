@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { OLLAMA_BASE_URL, OLLAMA_MODEL } from "@/lib/ollama";
+import { evaluateCapstoneProject } from "@/lib/ai";
 
 export async function POST(
   req: Request,
@@ -33,70 +33,19 @@ export async function POST(
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    // --- 1. Evaluate with Qwen 2.5 Coder or Hybrid AI ---
-    let overallScore = 92;
-    let technicalScore = 94;
-    let businessScore = 90;
-    let recruiterSummary =
-      "Candidate demonstrates production-grade analytical SQL engineering. Strong relational schema modeling, CTE pipelines, retention matrix computation, and clean executive summaries. Highly recommended for Analytics Engineer and BI Developer roles.";
-    let detailedFeedback =
-      "Excellent Lakehouse modeling. The cohort retention queries and customer lifetime value segmentations demonstrate real-world commercial intuition and high SQL proficiency. Clean documentation and modular CTEs.";
+    // --- 1. Evaluate with Gemini 2.0 Flash / Hybrid AI ---
+    const evalResult = await evaluateCapstoneProject(
+      project.title,
+      project.businessBrief,
+      githubUrl,
+      summaryText
+    );
 
-    try {
-      const prompt = `You are a Principal Analytics Engineer & Hiring Manager at a top tech company evaluating a Masai School 7-Day Capstone Project.
-Project Title: ${project.title}
-Business Brief: ${project.businessBrief}
-Candidate Deliverables:
-- GitHub URL: ${githubUrl || "Not provided"}
-- Summary & Architecture Notes:
-${summaryText || "Completed complete 7-day SQL lakehouse pipeline with cohort retention matrices, customer lifetime value segmentation, and optimized summary mart."}
-
-Evaluate candidate strictly against these 7 rubric criteria:
-1. Technical Accuracy (25%)
-2. Business Value & Metric Insight (20%)
-3. Problem Solving & Framing (15%)
-4. Data Understanding (15%)
-5. Code Quality & Modularity (10%)
-6. Documentation & Reproducibility (10%)
-7. Presentation (5%)
-
-Respond strictly in JSON format:
-{
-  "overallScore": 92,
-  "technicalScore": 94,
-  "businessScore": 90,
-  "recruiterSummary": "Brief recruiter-facing recommendation of the candidate's capabilities",
-  "feedback": "Detailed technical assessment and advice for production interviews"
-}`;
-
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 20000);
-
-      const res = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: OLLAMA_MODEL,
-          prompt,
-          stream: false,
-          format: "json",
-        }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-
-      if (res.ok) {
-        const json = await res.json();
-        const parsed = JSON.parse(json.response);
-        if (parsed.overallScore) overallScore = Number(parsed.overallScore);
-        if (parsed.technicalScore) technicalScore = Number(parsed.technicalScore);
-        if (parsed.businessScore) businessScore = Number(parsed.businessScore);
-        if (parsed.recruiterSummary) recruiterSummary = parsed.recruiterSummary;
-        if (parsed.feedback) detailedFeedback = parsed.feedback;
-      }
-    } catch (e) {
-      console.warn("AI project evaluation note:", e);
-    }
+    const overallScore = evalResult.overallScore;
+    const technicalScore = evalResult.technicalScore;
+    const businessScore = evalResult.businessScore;
+    const recruiterSummary = evalResult.recruiterSummary;
+    const detailedFeedback = evalResult.feedback;
 
     // --- 2. Save Submission ---
     const submission = await db.projectSubmission.create({

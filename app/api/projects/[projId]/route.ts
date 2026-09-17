@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { evaluateCapstoneProject } from "@/lib/ai";
 
 export async function GET(
   req: Request,
@@ -123,19 +124,22 @@ export async function POST(
       },
     });
 
-    // Generate comprehensive evaluation
-    const technicalScore = Math.min(100, Math.max(75, 80 + Math.floor(Math.random() * 16)));
-    const businessScore = Math.min(100, Math.max(75, 82 + Math.floor(Math.random() * 15)));
-    const overallScore = Math.round((technicalScore + businessScore) / 2);
+    // Generate comprehensive evaluation via Gemini 2.0 Flash / Hybrid AI
+    const evalResult = await evaluateCapstoneProject(
+      project.title,
+      project.businessBrief,
+      githubUrl,
+      summaryText
+    );
 
     const evaluation = await db.projectEvaluation.create({
       data: {
         submissionId: submission.id,
-        overallScore,
-        technicalScore,
-        businessScore,
-        recruiterSummary: `Candidate demonstrates production-grade analytical SQL engineering. Strong schema modeling, CTE pipelines, retention matrix computation, and clean executive summaries. Highly recommend for Analytics Engineer / BI Developer technical interviews.`,
-        feedback: `Excellent data lakehouse modeling. The cohort retention queries and customer lifetime value segmentations demonstrate real-world commercial intuition and high SQL proficiency.`,
+        overallScore: evalResult.overallScore,
+        technicalScore: evalResult.technicalScore,
+        businessScore: evalResult.businessScore,
+        recruiterSummary: evalResult.recruiterSummary,
+        feedback: evalResult.feedback,
       },
     });
 
@@ -154,9 +158,9 @@ export async function POST(
     return NextResponse.json({
       submissionId: submission.id,
       evaluationId: evaluation.id,
-      overallScore,
-      technicalScore,
-      businessScore,
+      overallScore: evaluation.overallScore,
+      technicalScore: evaluation.technicalScore,
+      businessScore: evaluation.businessScore,
       recruiterSummary: evaluation.recruiterSummary,
       feedback: evaluation.feedback,
       success: true,

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { ReactNode, useEffect, useState } from "react";
+import React, { ReactNode, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -16,11 +16,13 @@ import {
   BarChart3,
   Bot,
   Settings,
-  Flame,
   ChevronRight,
   GraduationCap,
-  Sparkles,
 } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import { StudyTimer } from "./StudyTimer";
 import { OllamaStatusBadge } from "./OllamaStatusBadge";
 
@@ -28,168 +30,167 @@ interface AppShellProps {
   children: ReactNode;
 }
 
+const NAV_SECTIONS = [
+  {
+    title: "Learn",
+    items: [
+      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Roadmap", href: "/roadmap", icon: Map },
+      { label: "Lesson", href: "/learn/module-1/day-2", icon: BookOpen },
+      { label: "Practice", href: "/practice/day-2", icon: Code2 },
+    ],
+  },
+  {
+    title: "Evaluate",
+    items: [
+      { label: "Assignment", href: "/assignment/daily-2", icon: FileCheck2 },
+      { label: "Evaluation", href: "/evaluation/latest", icon: Award },
+      { label: "Assessment", href: "/assessment/week-1", icon: CalendarCheck },
+      { label: "Projects", href: "/projects/capstone-1", icon: Briefcase },
+    ],
+  },
+  {
+    title: "Tools",
+    items: [
+      { label: "Backlog", href: "/backlog", icon: History },
+      { label: "Analytics", href: "/analytics", icon: BarChart3 },
+      { label: "AI Mentor", href: "/mentor", icon: Bot },
+      { label: "Studio", href: "/admin/studio", icon: Settings },
+    ],
+  },
+];
+
+function getBreadcrumb(pathname: string): string[] {
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments.length === 0) return ["Dashboard"];
+  const allItems = NAV_SECTIONS.flatMap((s) => s.items);
+  const match = allItems.find(
+    (item) => pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href.split("?")[0]))
+  );
+  if (match) {
+    const section = NAV_SECTIONS.find((s) => s.items.includes(match));
+    return section ? [section.title, match.label] : [match.label];
+  }
+  return segments.map((s) => s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()));
+}
+
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
-  const [profile, setProfile] = useState<{
-    name: string;
-    targetRole: string;
-    activeDayId?: string;
-    activeModuleId?: string;
-    currentStreak: number;
-    xp: number;
-    level: number;
-  }>({
-    name: "Learner",
-    targetRole: "BI / Analytics Engineer",
-    currentStreak: 12,
-    xp: 1450,
-    level: 3,
-  });
-
-  useEffect(() => {
-    async function loadUserProfile() {
-      try {
-        const res = await fetch("/api/profile");
-        if (res.ok) {
-          const data = await res.json();
-          if (data.profile) {
-            setProfile(data.profile);
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load profile in AppShell:", err);
-      }
-    }
-    loadUserProfile();
-  }, [pathname]);
-
-  const activeDaySlug = profile.activeDayId || "day-2";
-
-  const navItems = [
-    { label: "Daily Command Center", href: "/dashboard", icon: LayoutDashboard, badge: "Today" },
-    { label: "Curriculum Roadmap", href: "/roadmap", icon: Map },
-    { label: "Today's Lesson", href: `/learn/module-1/${activeDaySlug}`, icon: BookOpen, badge: "Lesson" },
-    { label: "SQL/Code Practice", href: `/practice/${activeDaySlug}`, icon: Code2 },
-    { label: "Daily Assignment", href: "/assignment/daily-2", icon: FileCheck2 },
-    { label: "AI Evaluation & Rubric", href: "/evaluation/latest", icon: Award },
-    { label: "Monday Exam Hall", href: "/assessment/week-1", icon: CalendarCheck, badge: "Exam" },
-    { label: "7-Day Capstone Project", href: "/projects/capstone-1", icon: Briefcase, badge: "Project" },
-    { label: "Backlog & Remedial", href: "/backlog", icon: History },
-    { label: "Skill Mastery Analytics", href: "/analytics", icon: BarChart3 },
-    { label: "AI Career Coach", href: "/mentor", icon: Bot, highlight: true },
-    { label: "Curriculum Studio", href: "/admin/studio", icon: Settings },
-  ];
+  const [expanded, setExpanded] = useState(false);
+  const breadcrumb = getBreadcrumb(pathname);
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#090D16] text-slate-100 antialiased">
+    <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground">
       {/* Sidebar */}
-      <aside className="w-64 flex-shrink-0 flex flex-col border-r border-slate-800/80 bg-slate-950/80 backdrop-blur-xl z-20">
-        {/* Brand Header */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800/80">
-          <Link href="/dashboard" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-masai-red to-rose-600 flex items-center justify-center shadow-glow">
-              <GraduationCap className="w-5 h-5 text-white" />
+      <aside
+        onMouseEnter={() => setExpanded(true)}
+        onMouseLeave={() => setExpanded(false)}
+        className={cn(
+          "flex-shrink-0 flex flex-col border-r border-border bg-sidebar z-20 transition-sidebar overflow-hidden",
+          expanded ? "w-52" : "w-14"
+        )}
+      >
+        {/* Brand */}
+        <div className="h-14 flex items-center px-3 border-b border-border">
+          <Link href="/dashboard" className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
+              <GraduationCap className="w-4 h-4 text-primary-foreground" />
             </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-sm tracking-tight text-white">MASAI</span>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-masai-red/20 text-masai-red border border-masai-red/40">
-                  AI PRO
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400 font-medium">Career Training Engine</p>
-            </div>
+            <span
+              className={cn(
+                "font-bold text-sm tracking-tight text-foreground whitespace-nowrap transition-opacity duration-200",
+                expanded ? "opacity-100" : "opacity-0 w-0"
+              )}
+            >
+              MASAI
+            </span>
           </Link>
         </div>
 
-        {/* Current Active Track Card */}
-        <div className="p-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-slate-900 to-slate-800/90 border border-slate-700/60 shadow-sm">
-            <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400">
-              <span className="flex items-center gap-1 text-masai-accent">
-                <Sparkles className="w-3 h-3" /> Target Role
-              </span>
-              <span className="text-emerald-400 font-mono font-bold">Week 1 / 20</span>
-            </div>
-            <p className="text-xs font-bold text-slate-100 mt-1 truncate">{profile.targetRole}</p>
-            <div className="flex items-center justify-between text-[10px] text-slate-400 mt-2 font-medium">
-              <span className="flex items-center gap-1 text-amber-400 font-bold">
-                <Flame className="w-3 h-3 fill-current text-amber-500" /> {profile.currentStreak} Day Streak
-              </span>
-              <span className="text-cyan-300 font-bold">{profile.xp} XP</span>
-            </div>
-            <div className="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden mt-1.5">
-              <div className="bg-gradient-to-r from-masai-red to-masai-accent h-full w-[15%]" />
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation Items */}
-        <nav className="flex-1 overflow-y-auto px-2 space-y-1 py-1">
-          <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-            Navigation
-          </div>
-          {navItems.map((item) => {
-            const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href.split("?")[0]));
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.label}
-                href={item.href}
-                className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all group ${
-                  isActive
-                    ? "bg-masai-red/15 text-white font-semibold border border-masai-red/30 shadow-sm"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/60"
-                } ${item.highlight ? "text-cyan-300 hover:text-cyan-200" : ""}`}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <Icon
-                    className={`w-4 h-4 flex-shrink-0 transition-colors ${
-                      isActive ? "text-masai-red" : item.highlight ? "text-masai-accent" : "text-slate-400 group-hover:text-slate-200"
-                    }`}
-                  />
-                  <span className="truncate">{item.label}</span>
-                </div>
-                {item.badge && (
-                  <span
-                    className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
-                      isActive
-                        ? "bg-masai-red text-white"
-                        : "bg-slate-800 text-slate-300 group-hover:bg-slate-700"
-                    }`}
-                  >
-                    {item.badge}
-                  </span>
+        {/* Navigation */}
+        <ScrollArea className="flex-1 py-3">
+          {NAV_SECTIONS.map((section, sIdx) => (
+            <div key={section.title}>
+              {sIdx > 0 && <Separator className="my-2 mx-3" />}
+              {/* Section title */}
+              <div
+                className={cn(
+                  "px-4 mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground transition-opacity duration-200",
+                  expanded ? "opacity-100" : "opacity-0 h-0 mb-0 overflow-hidden"
                 )}
-              </Link>
-            );
-          })}
-        </nav>
+              >
+                {section.title}
+              </div>
+              <div className="space-y-0.5 px-2">
+                {section.items.map((item) => {
+                  const isActive =
+                    pathname === item.href ||
+                    (item.href !== "/dashboard" && pathname.startsWith(item.href.split("?")[0]));
+                  const Icon = item.icon;
 
-        {/* Footer info */}
-        <div className="p-3 border-t border-slate-800/80 bg-slate-950/90 text-center">
-          <p className="text-[10px] text-slate-500">Local-First • Qwen 2.5 Coder • 0 API Cost</p>
-        </div>
+                  const linkContent = (
+                    <Link
+                      href={item.href}
+                      className={cn(
+                        "flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm font-medium transition-colors",
+                        isActive
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50"
+                      )}
+                    >
+                      <Icon className={cn("w-4 h-4 flex-shrink-0", isActive ? "text-primary" : "")} />
+                      <span
+                        className={cn(
+                          "truncate whitespace-nowrap transition-opacity duration-200",
+                          expanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden"
+                        )}
+                      >
+                        {item.label}
+                      </span>
+                    </Link>
+                  );
+
+                  // Show tooltip only when sidebar is collapsed
+                  if (!expanded) {
+                    return (
+                      <Tooltip key={item.label}>
+                        <TooltipTrigger render={linkContent} />
+                        <TooltipContent side="right">{item.label}</TooltipContent>
+                      </Tooltip>
+                    );
+                  }
+
+                  return <React.Fragment key={item.label}>{linkContent}</React.Fragment>;
+                })}
+              </div>
+            </div>
+          ))}
+        </ScrollArea>
       </aside>
 
-      {/* Main Content Area */}
+      {/* Main */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top Command Bar */}
-        <header className="h-16 flex-shrink-0 flex items-center justify-between px-6 border-b border-slate-800/80 bg-slate-950/60 backdrop-blur-xl z-10">
-          <div className="flex items-center gap-3">
-            <h1 className="text-sm font-bold text-slate-200 tracking-tight hidden sm:block">
-              Masai Career BootCamp • <span className="text-masai-accent">Intensive Discipline Mode</span>
-            </h1>
+        {/* Header */}
+        <header className="h-12 flex-shrink-0 flex items-center justify-between px-5 border-b border-border bg-sidebar/80 backdrop-blur-sm z-10">
+          <div className="flex items-center gap-1.5 text-sm">
+            {breadcrumb.map((crumb, idx) => (
+              <React.Fragment key={idx}>
+                {idx > 0 && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
+                <span className={idx === breadcrumb.length - 1 ? "font-medium text-foreground" : "text-muted-foreground"}>
+                  {crumb}
+                </span>
+              </React.Fragment>
+            ))}
           </div>
-
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <OllamaStatusBadge />
+            <Separator orientation="vertical" className="h-5" />
             <StudyTimer />
           </div>
         </header>
 
-        {/* Page View Container */}
-        <main className="flex-1 overflow-y-auto bg-gradient-to-b from-[#090D16] to-[#0D1526] p-6">
+        {/* Page */}
+        <main className="flex-1 overflow-y-auto p-6">
           {children}
         </main>
       </div>

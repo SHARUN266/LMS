@@ -78,7 +78,7 @@ export default function CapstoneEvaluationPage({ params }: { params: { projId: s
     const markdownContent = `# 🏆 Capstone Portfolio Dossier: ${projectTitle}
 
 **Learner Track:** BI & Analytics Engineering  
-**Evaluation Engine:** Qwen 2.5 Coder (Masai AI Evaluator)  
+**Evaluation Engine:** Google Gemini 2.0 Flash (Masai Senior Analytics Staff Evaluator)  
 **Overall Recruiter Score:** ${evalData?.overallScore || 94} / 100 (Top 3% Candidate Benchmark)  
 **GitHub Repository:** ${githubUrl}  
 
@@ -161,7 +161,7 @@ ${evalData?.feedback || "Clean multi-CTE architecture, optimal window function f
               Capstone Portfolio Dossier & Recruiter Summary
             </h1>
             <p className="text-xs text-slate-300 mt-1 max-w-xl">
-              Evaluated by Qwen 2.5 Coder. Ready for inclusion in your CV, GitHub README, and LinkedIn portfolio!
+              Evaluated by Google Gemini 2.0 Flash. Ready for inclusion in your CV, GitHub README, and LinkedIn portfolio!
             </p>
           </div>
         </div>

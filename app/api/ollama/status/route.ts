@@ -1,11 +1,19 @@
 import { NextResponse } from "next/server";
-import { checkOllamaConnection, OLLAMA_MODEL } from "@/lib/ollama";
+import { getAIStatus } from "@/lib/ai";
 
 export async function GET() {
-  const status = await checkOllamaConnection();
+  const status = await getAIStatus();
   return NextResponse.json({
-    connected: status.connected,
-    activeModel: OLLAMA_MODEL,
-    availableModels: status.models,
+    // New unified fields
+    activeProvider: status.activeProvider,
+    geminiConfigured: status.geminiConfigured,
+    geminiModel: "gemini-2.0-flash",
+    // Backward compatible fields
+    connected: status.geminiConfigured || status.ollamaConnected,
+    activeModel: status.geminiConfigured ? "gemini-2.0-flash" : status.ollamaModel,
+    availableModels: status.geminiConfigured
+      ? ["gemini-2.0-flash", ...status.availableOllamaModels]
+      : status.availableOllamaModels,
+    ollamaConnected: status.ollamaConnected,
   });
 }

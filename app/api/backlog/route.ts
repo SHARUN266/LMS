@@ -49,23 +49,36 @@ export async function PATCH(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { title, topic, dueOriginal, scheduledFor } = body;
+    const { title, topic, type, problem, starterCode, solution, dueOriginal, scheduledFor } = body;
 
     if (!title || !topic) {
       return NextResponse.json({ error: "title and topic are required" }, { status: 400 });
     }
+
+    // If explicit drill requested or by default, also ensure a RemedialDrill is available
+    const drill = await db.remedialDrill.create({
+      data: {
+        topic,
+        title,
+        difficulty: "Intermediate",
+        problem: problem || `Adaptive concept mastery drill targeting weak skill area: ${topic}. Write and execute the required SQL logic.`,
+        starterCode: starterCode || `-- Practice drill on: ${topic}\nSELECT * FROM orders;`,
+        solution: solution || `-- Ideal SQL solution for ${topic}`,
+        isCompleted: false,
+      },
+    });
 
     const item = await db.backlogItem.create({
       data: {
         title,
         topic,
         dueOriginal: dueOriginal ? new Date(dueOriginal) : new Date(),
-        scheduledFor: scheduledFor ? new Date(scheduledFor) : new Date(),
+        scheduledFor: scheduledFor ? new Date(scheduledFor) : new Date(Date.now() + 86400000),
         isCompleted: false,
       },
     });
 
-    return NextResponse.json({ item, success: true });
+    return NextResponse.json({ item, drill, success: true });
   } catch (error: any) {
     console.error("Error creating backlog item:", error);
     return NextResponse.json({ error: "Failed to create backlog item", details: error.message }, { status: 500 });

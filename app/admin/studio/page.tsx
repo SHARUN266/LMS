@@ -72,9 +72,10 @@ export default function AdminStudioPage() {
             onChange={(e) => setModel(e.target.value)}
             className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-masai-red font-mono"
           >
-            <option value="qwen2.5-coder">qwen2.5-coder (Default • Top Coding Performance)</option>
-            <option value="deepseek-r1-distill">deepseek-r1-distill (High Reasoning & Proofs)</option>
-            <option value="llama3.2">llama3.2 (Fast Socratic Mentor)</option>
+            <option value="gemini-2.0-flash">gemini-2.0-flash (Google AI Studio • Claude-tier Speed & Reasoning)</option>
+            <option value="qwen2.5-coder">qwen2.5-coder (Local Ollama • Top Coding Performance)</option>
+            <option value="deepseek-r1">deepseek-r1 (Local Ollama • Deep Step-by-Step Reasoning)</option>
+            <option value="llama3.2">llama3.2 (Local Ollama • Fast Socratic Mentor)</option>
           </select>
         </div>
 

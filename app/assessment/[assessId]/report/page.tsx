@@ -17,6 +17,8 @@ import {
   X,
   ShieldCheck,
   BookOpen,
+  Bot,
+  FileCode,
 } from "lucide-react";
 import {
   Radar,
@@ -45,6 +47,28 @@ export default function AssessmentReportPage({ params }: { params: { assessId: s
   const [attempt, setAttempt] = useState<AttemptData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"RADAR" | "BREAKDOWN">("RADAR");
+  const [generatingDrills, setGeneratingDrills] = useState(false);
+  const [drillsCreated, setDrillsCreated] = useState(false);
+
+  const handleGenerateAdaptiveDrills = async (topicName: string) => {
+    try {
+      setGeneratingDrills(true);
+      await fetch("/api/backlog", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: `Adaptive Mastery Drill: ${topicName}`,
+          topic: topicName,
+        }),
+      });
+      setDrillsCreated(true);
+      setTimeout(() => setDrillsCreated(false), 3500);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setGeneratingDrills(false);
+    }
+  };
 
   useEffect(() => {
     async function loadReport() {
@@ -106,11 +130,27 @@ export default function AssessmentReportPage({ params }: { params: { assessId: s
     } catch {}
   }
 
-  // Parse user answers
+  // Parse user answers & detailed question results
   let userAnswers: Record<string, string> = {};
+  let questionResultsMap: Record<string, any> = {};
+
   if (attempt?.answersJson) {
     try {
-      userAnswers = JSON.parse(attempt.answersJson);
+      const parsed = JSON.parse(attempt.answersJson);
+      if (parsed && typeof parsed === "object") {
+        if (parsed.rawAnswers) {
+          userAnswers = parsed.rawAnswers;
+        } else {
+          userAnswers = parsed;
+        }
+
+        if (Array.isArray(parsed.questionResults)) {
+          parsed.questionResults.forEach((r: any) => {
+            if (r.questionId) questionResultsMap[r.questionId] = r;
+            if (r.order !== undefined) questionResultsMap[r.order.toString()] = r;
+          });
+        }
+      }
     } catch {}
   }
 
@@ -257,6 +297,24 @@ export default function AssessmentReportPage({ params }: { params: { assessId: s
                 </div>
               ))}
             </div>
+
+            {topicRadarList.some((t) => t.score < 75) && (
+              <div className="pt-2 border-t border-slate-800">
+                <button
+                  onClick={() => {
+                    const weakest = topicRadarList.filter((t) => t.score < 75).sort((a, b) => a.score - b.score)[0];
+                    if (weakest) handleGenerateAdaptiveDrills(weakest.topic.replace("\n", " & "));
+                  }}
+                  disabled={generatingDrills}
+                  className="w-full py-2.5 px-4 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-bold transition-all flex items-center justify-center gap-2"
+                >
+                  <Zap className="w-4 h-4 text-amber-400" />
+                  <span>
+                    {drillsCreated ? "✓ Adaptive Drill Added to Backlog!" : "Generate Targeted Drill for Weak Topics (< 75%)"}
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -265,11 +323,16 @@ export default function AssessmentReportPage({ params }: { params: { assessId: s
       {activeTab === "BREAKDOWN" && (
         <div className="space-y-4">
           {questions.map((q: any) => {
-            const userAns = (userAnswers[q.id] || userAnswers[q.order.toString()] || "").trim();
-            const isCorrect =
-              q.type === "MCQ"
-                ? q.correctAnswer && userAns.toLowerCase() === q.correctAnswer.trim().toLowerCase()
-                : userAns.length > 20;
+            const userAns = (userAnswers[q.id] || userAnswers[q.order?.toString()] || "").trim();
+            const result = questionResultsMap[q.id] || questionResultsMap[q.order?.toString()];
+
+            const isCorrect = result !== undefined
+              ? Boolean(result.isCorrect)
+              : q.type === "MCQ"
+              ? Boolean(q.correctAnswer && userAns.toLowerCase() === q.correctAnswer.trim().toLowerCase())
+              : userAns.length > 20;
+
+            const earnedMarks = result !== undefined ? result.earned : (isCorrect ? q.weight : 0);
 
             return (
               <div
@@ -289,7 +352,13 @@ export default function AssessmentReportPage({ params }: { params: { assessId: s
                       Question {q.order} ({q.type})
                     </span>
                   </div>
-                  <span className="text-xs font-mono font-bold text-slate-400">{q.weight}% Weight</span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded ${
+                      isCorrect ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" : "bg-rose-500/15 text-rose-400 border border-rose-500/30"
+                    }`}>
+                      {earnedMarks} / {q.weight} pts
+                    </span>
+                  </div>
                 </div>
 
                 <p className="text-xs font-bold text-slate-100">{q.prompt}</p>
@@ -308,11 +377,36 @@ export default function AssessmentReportPage({ params }: { params: { assessId: s
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-2 text-xs">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 block">Submitted Code Solution</span>
-                    <pre className="p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-[11px] text-cyan-300 overflow-x-auto">
-                      <code>{userAns || q.starterCode || "-- No solution submitted"}</code>
-                    </pre>
+                  <div className="space-y-3 text-xs">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-500 block mb-1">Submitted Code Solution</span>
+                      <pre className="p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-[11px] text-cyan-300 overflow-x-auto">
+                        <code>{userAns || q.starterCode || "-- No solution submitted"}</code>
+                      </pre>
+                    </div>
+
+                    {result?.aiFeedback && (
+                      <div className="p-3 rounded-xl bg-slate-950/80 border border-cyan-500/30 space-y-1">
+                        <div className="flex items-center gap-1.5 text-cyan-300 font-bold text-[11px]">
+                          <Bot className="w-3.5 h-3.5" />
+                          <span>AI Evaluator Technical Review:</span>
+                        </div>
+                        <p className="text-slate-300 text-xs leading-relaxed whitespace-pre-line">
+                          {result.aiFeedback}
+                        </p>
+                      </div>
+                    )}
+
+                    {result?.codeDiff && (
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-emerald-400 block mb-1 flex items-center gap-1">
+                          <FileCode className="w-3 h-3" /> Recommended Production Query Refactoring:
+                        </span>
+                        <pre className="p-3 rounded-xl bg-emerald-950/20 border border-emerald-500/30 font-mono text-[11px] text-emerald-300 overflow-x-auto">
+                          <code>{result.codeDiff}</code>
+                        </pre>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
