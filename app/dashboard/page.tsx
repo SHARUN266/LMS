@@ -76,6 +76,13 @@ export default async function DashboardPage() {
   const studyHours = Math.floor(profile.totalStudyMins / 60);
   const studyMins = profile.totalStudyMins % 60;
 
+  const dayNumber = activeDay?.dayNumber || 2;
+  const learnHref = activeDay ? `/learn/module-1/${activeDay.id}` : "/learn";
+  const practiceHref = activeDay ? `/practice/${activeDay.id}` : "/practice";
+  const assignmentHref = activeDay?.assignments?.[0]
+    ? `/assignment/${activeDay.assignments[0].id}`
+    : `/assignment/daily-${dayNumber}`;
+
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12">
       {/* Top Banner / Greeting */}
@@ -83,19 +90,19 @@ export default async function DashboardPage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold tracking-tight text-foreground">
-              Day 2 of 120
+              Day {dayNumber} of 120
             </h1>
             <Badge variant="outline" className="text-[11px] font-normal border-primary/30 text-primary">
               Cohort Active
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Focus: <span className="text-foreground/90 font-medium">Analytical Window Functions & Running Totals</span>
+            Focus: <span className="text-foreground/90 font-medium">{activeDay?.title || "Analytical Window Functions & Running Totals"}</span>
           </p>
         </div>
-        <Link href="/learn/module-1/day-2">
+        <Link href={practiceHref}>
           <Button size="sm" className="gap-2 font-medium shadow-sm">
-            Resume Learning
+            Resume Practice (Step 2)
             <ArrowRight className="w-3.5 h-3.5" />
           </Button>
         </Link>
@@ -159,13 +166,13 @@ export default async function DashboardPage() {
         <div className="divide-y divide-border">
           {/* Task 1: Theory — Completed */}
           <Link
-            href="/learn/module-1/day-2"
+            href={learnHref}
             className="flex items-center justify-between px-5 py-3.5 hover:bg-muted/40 transition-colors group"
           >
             <div className="flex items-center gap-3">
               <CheckCircle2 className="w-[18px] h-[18px] text-emerald-500 flex-shrink-0" />
               <span className="text-xs font-medium text-muted-foreground line-through decoration-muted-foreground/50">
-                Study: Window Functions, Partitions & Framing
+                Step 1: Theory — Window Functions, Partitions & Framing
               </span>
             </div>
             <Badge variant="success" className="text-[10px] font-medium">
@@ -175,7 +182,7 @@ export default async function DashboardPage() {
 
           {/* Task 2: Practice — Active */}
           <Link
-            href="/practice/day-2"
+            href={practiceHref}
             className="flex items-center justify-between px-5 py-3.5 bg-primary/[0.04] hover:bg-primary/[0.08] transition-colors group"
           >
             <div className="flex items-center gap-3">
@@ -184,7 +191,7 @@ export default async function DashboardPage() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold text-foreground">
-                  Practice: Top 2 Products per Category Drill
+                  Step 2: Hands-on Practice Sandbox (Active)
                 </span>
               </div>
             </div>
@@ -198,31 +205,31 @@ export default async function DashboardPage() {
 
           {/* Task 3: Assignment — Locked / Upcoming */}
           <Link
-            href="/assignment/daily-2"
+            href={assignmentHref}
             className="flex items-center justify-between px-5 py-3.5 hover:bg-muted/40 transition-colors group"
           >
             <div className="flex items-center gap-3">
               <Circle className="w-[18px] h-[18px] text-muted-foreground/60 flex-shrink-0" />
               <span className="text-xs font-medium text-muted-foreground">
-                Assignment: Running Totals & Order Velocity
+                Step 3: Graded Assignment — Industry Exam
               </span>
             </div>
-            <span className="text-[11px] text-muted-foreground font-mono">Due 11:59 PM</span>
+            <span className="text-[11px] text-muted-foreground font-mono">Due Today</span>
           </Link>
 
-          {/* Task 4: AI Review — Locked */}
+          {/* Task 4: AI Review — Evaluation */}
           <Link
-            href="/evaluation/latest"
+            href="/evaluation"
             className="flex items-center justify-between px-5 py-3.5 hover:bg-muted/40 transition-colors group"
           >
             <div className="flex items-center gap-3">
               <Circle className="w-[18px] h-[18px] text-muted-foreground/40 flex-shrink-0" />
               <span className="text-xs font-medium text-muted-foreground/60">
-                AI Feedback Review & Remediation
+                Step 4: AI Scorecard & Remediation
               </span>
             </div>
             <Badge variant="outline" className="text-[10px] text-muted-foreground border-border">
-              Locked
+              Evaluation
             </Badge>
           </Link>
         </div>

@@ -17,6 +17,7 @@ import {
   Loader2,
   ShieldCheck,
 } from "lucide-react";
+import { DailyStepper } from "@/components/DailyStepper";
 
 const Editor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
@@ -146,21 +147,28 @@ SELECT * FROM orders LIMIT 10;`);
   const practiceCount = dayData?.practice?.length || 1;
 
   return (
-    <div className="h-[calc(100vh-6rem)] flex flex-col space-y-3 pb-2">
+    <div className="space-y-4 pb-8">
+      {/* Daily Progress Stepper */}
+      <DailyStepper
+        currentStep={2}
+        dayNumber={dayNumber}
+        dayId={dayData?.id || params.dayId}
+      />
+
       {/* Top Action Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 flex-shrink-0">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-masai-red/20 text-masai-red border border-masai-red/40">
-            <Terminal className="w-5 h-5" />
+          <div className="p-2 rounded-lg bg-muted text-foreground border border-border">
+            <Terminal className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-400">Day {dayNumber} Practice Sandbox</span>
-              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              <span className="text-xs font-semibold text-muted-foreground">Day {dayNumber} Practice Sandbox</span>
+              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                 {currentExercise.difficulty || "Intermediate"} Difficulty
               </span>
             </div>
-            <h1 className="text-base font-extrabold text-white truncate max-w-xl">
+            <h1 className="text-sm font-bold text-foreground truncate max-w-xl">
               {currentExercise.title}
             </h1>
           </div>
@@ -169,15 +177,15 @@ SELECT * FROM orders LIMIT 10;`);
         <div className="flex items-center flex-wrap gap-2">
           {/* Exercise Tabs for all practice drills */}
           {practiceCount > 1 && (
-            <div className="flex rounded-lg bg-slate-900 border border-slate-800 p-0.5 mr-2">
+            <div className="flex rounded-lg bg-card border border-border p-0.5 mr-1">
               {dayData?.practice?.map((_, i) => (
                 <button
                   key={i}
                   onClick={() => handleSelectExercise(i)}
-                  className={`px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center gap-1.5 ${
+                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 ${
                     selectedExerciseIdx === i
-                      ? "bg-masai-red text-white shadow-glow"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   <span>Drill {i + 1}</span>
@@ -191,10 +199,10 @@ SELECT * FROM orders LIMIT 10;`);
           {parsedHints.length > 0 && (
             <button
               onClick={() => setHintStep((prev) => Math.min(parsedHints.length, prev + 1))}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-semibold transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card hover:bg-muted text-muted-foreground hover:text-foreground border border-border text-xs font-medium transition-all shadow-sm"
             >
-              <HelpCircle className="w-3.5 h-3.5" />
-              <span>{hintStep === 0 ? "Get Socratic Hint" : `Hint ${hintStep}/${parsedHints.length}`}</span>
+              <HelpCircle className="w-3.5 h-3.5 text-amber-400" />
+              <span>{hintStep === 0 ? "Socratic Hint" : `Hint ${hintStep}/${parsedHints.length}`}</span>
             </button>
           )}
 
@@ -202,15 +210,15 @@ SELECT * FROM orders LIMIT 10;`);
           <button
             onClick={handleRunQuery}
             disabled={isRunning}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-glow-emerald transition-all disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
           >
             <Play className={`w-3.5 h-3.5 fill-current ${isRunning ? "animate-spin" : ""}`} />
-            <span>{isRunning ? "Executing..." : "Run Query (Ctrl+Enter)"}</span>
+            <span>{isRunning ? "Executing..." : "Run Query"}</span>
           </button>
 
           <Link
             href={assignmentHref}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-gradient-to-r from-masai-red to-rose-600 hover:from-rose-600 hover:to-masai-red text-white text-xs font-extrabold shadow-glow transition-all"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-sm transition-colors"
           >
             <span>Graded Assignment</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -236,9 +244,9 @@ SELECT * FROM orders LIMIT 10;`);
       )}
 
       {/* Main Split Pane: Left Monaco Editor, Right Table Schema & Output */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-3 min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 h-[460px]">
         {/* Left: Monaco SQL Editor */}
-        <div className="flex flex-col rounded-xl overflow-hidden border border-slate-800 bg-slate-950 shadow-inner">
+        <div className="flex flex-col rounded-xl overflow-hidden border border-slate-800 bg-slate-950 shadow-inner h-full">
           <div className="h-9 px-4 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-xs font-semibold text-slate-300">
             <span className="flex items-center gap-1.5 font-mono text-cyan-400">
               <Database className="w-3.5 h-3.5" /> drill_{selectedExerciseIdx + 1}.sql (Monaco Sandbox)
@@ -332,6 +340,28 @@ SELECT * FROM orders LIMIT 10;`);
             )}
           </div>
         </div>
+      </div>
+
+      {/* Next Step Transition Banner */}
+      <div className="p-5 rounded-xl bg-card border border-border flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+        <div className="space-y-1 text-center sm:text-left">
+          <div className="flex items-center justify-center sm:justify-start gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <span>Finished Practice Drills?</span>
+          </div>
+          <h3 className="text-sm font-bold text-foreground">
+            Step 3: Graded Assignment & Strict Rubric
+          </h3>
+          <p className="text-xs text-muted-foreground max-w-xl">
+            Test your problem solving against realistic industry criteria. Submit your final code for automated evaluation and scorecards.
+          </p>
+        </div>
+        <Link
+          href={assignmentHref}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-sm transition-colors whitespace-nowrap"
+        >
+          <span>Continue to Step 3: Assignment</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { evaluateWithQwen } from "@/lib/ollama";
+import { evaluateCodeSubmission } from "@/lib/ai";
 import { validateSQLSubmission } from "@/lib/sql-validator";
 
 export async function POST(req: Request) {
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
     };
 
     try {
-      const qwenResponse = await evaluateWithQwen(
+      const geminiResponse = await evaluateCodeSubmission(
         submittedCode,
         assignment.title,
         questionPrompt,
@@ -84,9 +84,9 @@ export async function POST(req: Request) {
       );
       aiEvalResult = {
         ...aiEvalResult,
-        ...qwenResponse,
+        ...geminiResponse,
         rubricScores: {
-          ...qwenResponse.rubricScores,
+          ...geminiResponse.rubricScores,
           correctness: deterministicResult.correctnessScore,
           explanation: notes && notes.trim().length > 10 ? 4 : 2,
         },

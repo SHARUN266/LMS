@@ -49,33 +49,33 @@ export default function AdminStudioPage() {
     <div className="max-w-4xl mx-auto space-y-6 pb-16">
       {/* Header */}
       <div>
-        <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
-          <Settings className="w-4 h-4 text-masai-red" />
-          <span>Local Engine Configuration</span>
+        <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+          <Settings className="w-4 h-4 text-primary" />
+          <span>Praxis System Configuration</span>
         </div>
-        <h1 className="text-2xl font-black text-white tracking-tight">
-          Curriculum CMS & AI Prompt Studio
+        <h1 className="text-xl font-bold text-foreground tracking-tight">
+          Curriculum CMS & Evaluation Studio
         </h1>
-        <p className="text-xs text-slate-400 mt-1">
-          Customize your local Ollama model parameters, evaluation strictness, and rubric weights.
+        <p className="text-xs text-muted-foreground mt-1">
+          Customize your automated evaluation parameters, strictness thresholds, and rubric weights.
         </p>
       </div>
 
-      <div className="p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl space-y-6">
+      <div className="p-6 rounded-xl bg-card border border-border shadow-sm space-y-6">
         {/* Model Selection */}
         <div>
-          <label className="text-xs font-bold uppercase tracking-wider text-slate-300 block mb-2 flex items-center gap-1.5">
-            <Cpu className="w-4 h-4 text-masai-accent" /> Active Local Ollama Model
+          <label className="text-xs font-bold uppercase tracking-wider text-foreground block mb-2 flex items-center gap-1.5">
+            <Cpu className="w-4 h-4 text-primary" /> Active Evaluation Model
           </label>
           <select
             value={model}
             onChange={(e) => setModel(e.target.value)}
-            className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-masai-red font-mono"
+            className="w-full p-2.5 rounded-lg bg-background border border-border text-xs text-foreground focus:outline-none focus:border-primary font-mono"
           >
-            <option value="gemini-2.0-flash">gemini-2.0-flash (Google AI Studio • Claude-tier Speed & Reasoning)</option>
-            <option value="qwen2.5-coder">qwen2.5-coder (Local Ollama • Top Coding Performance)</option>
+            <option value="gemini-2.5-flash">Gemini 2.5 Flash (Google AI Studio • Active Production Engine)</option>
+            <option value="qwen2.5-coder">qwen2.5-coder (Local Ollama • Fast Coding Performance)</option>
             <option value="deepseek-r1">deepseek-r1 (Local Ollama • Deep Step-by-Step Reasoning)</option>
-            <option value="llama3.2">llama3.2 (Local Ollama • Fast Socratic Mentor)</option>
+            <option value="llama3.2">llama3.2 (Local Ollama • Socratic Mentor)</option>
           </select>
         </div>
 

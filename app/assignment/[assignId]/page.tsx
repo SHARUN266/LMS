@@ -18,6 +18,7 @@ import {
   History,
   Award,
 } from "lucide-react";
+import { DailyStepper } from "@/components/DailyStepper";
 
 const Editor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
@@ -151,6 +152,14 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-16">
+      {/* Daily Progress Stepper */}
+      <DailyStepper
+        currentStep={3}
+        dayNumber={dayNum}
+        dayId={assignment?.day?.id}
+        assignmentId={assignment?.id || params.assignId}
+      />
+
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -170,17 +179,17 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-masai-red to-rose-600 hover:from-rose-600 hover:to-masai-red text-white text-xs font-black shadow-glow transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-sm transition-colors disabled:opacity-50"
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin text-white" />
-                <span>Qwen 2.5 Coder is Evaluating...</span>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Evaluating Submission...</span>
               </>
             ) : (
               <>
-                <Send className="w-4 h-4" />
-                <span>Submit for Strict AI Rubric Grading</span>
+                <Send className="w-3.5 h-3.5" />
+                <span>Submit for Evaluation</span>
               </>
             )}
           </button>
@@ -320,7 +329,7 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
             <span className="flex items-center gap-1.5 font-mono text-masai-red">
               <FileCode className="w-4 h-4" /> solution_{selectedQIdx + 1}.sql (Production Code Submission)
             </span>
-            <span className="text-[11px] text-slate-500 font-mono">Qwen 2.5 Coder Evaluation Engine</span>
+            <span className="text-[11px] text-slate-500 font-mono">Gemini 2.5 Flash Evaluation Engine</span>
           </div>
 
           <div className="flex-1 min-h-0">
@@ -342,6 +351,38 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
             />
           </div>
         </div>
+      </div>
+
+      {/* Bottom Submit Action Bar */}
+      <div className="p-5 rounded-xl bg-card border border-border flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+        <div className="space-y-1 text-center sm:text-left">
+          <div className="flex items-center justify-center sm:justify-start gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <span>Ready for Scoring?</span>
+          </div>
+          <h3 className="text-sm font-bold text-foreground">
+            Step 4: Automated Evaluation & Scorecard
+          </h3>
+          <p className="text-xs text-muted-foreground max-w-xl">
+            Upon submission, our evaluation engine analyzes correctness, query logic, edge cases, and performance to generate your report card.
+          </p>
+        </div>
+        <button
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-sm transition-colors disabled:opacity-50 whitespace-nowrap"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Evaluating Code...</span>
+            </>
+          ) : (
+            <>
+              <Send className="w-3.5 h-3.5" />
+              <span>Submit for Evaluation (Step 4) →</span>
+            </>
+          )}
+        </button>
       </div>
     </div>
   );

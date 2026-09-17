@@ -54,8 +54,15 @@ export async function POST(req: Request) {
       } as SQLQueryResult);
     }
 
+    const sanitizeValue = (val: any) => {
+      if (typeof val === "bigint") {
+        return Number(val);
+      }
+      return val;
+    };
+
     const columns = Object.keys(rawResult[0]);
-    const rows = rawResult.map((item) => columns.map((col) => item[col]));
+    const rows = rawResult.map((item) => columns.map((col) => sanitizeValue(item[col])));
 
     return NextResponse.json({
       columns,

@@ -20,6 +20,7 @@ import {
   Send,
   Lock,
 } from "lucide-react";
+import { DailyStepper } from "@/components/DailyStepper";
 
 interface QuickQuizItem {
   question: string;
@@ -190,6 +191,14 @@ export default function LearnDayPage({
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-16 relative">
+      {/* Daily Progress Stepper */}
+      <DailyStepper
+        currentStep={1}
+        dayNumber={dayNumber}
+        dayId={dayData?.id || params.dayId}
+        moduleId={params.moduleId}
+      />
+
       {/* Top Breadcrumb & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -210,21 +219,21 @@ export default function LearnDayPage({
           )}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <button
             onClick={() => setIsMentorOpen(!isMentorOpen)}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold transition-all shadow-glow-cyan"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card hover:bg-muted text-foreground border border-border text-xs font-medium transition-colors shadow-sm"
           >
-            <Bot className="w-4 h-4" />
-            <span>AI Mentor Drawer</span>
+            <Bot className="w-3.5 h-3.5 text-muted-foreground" />
+            <span>Technical Mentor</span>
           </button>
 
           <Link
             href={practiceUrl}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-masai-red to-rose-600 hover:from-rose-600 hover:to-masai-red text-white text-xs font-extrabold shadow-glow transition-all"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-sm transition-colors"
           >
             <span>Start Practice Drills</span>
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
       </div>
@@ -264,10 +273,10 @@ export default function LearnDayPage({
         )}
 
         {/* Micro-Knowledge Check Widget */}
-        <div className="p-6 rounded-xl bg-slate-950/90 border border-masai-red/30 shadow-glow mt-8 space-y-5">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-            <div className="flex items-center gap-2 text-masai-red text-xs font-bold uppercase tracking-wider">
-              <HelpCircle className="w-4 h-4" /> Micro-Knowledge Check ({quickQuizList.length} Questions)
+        <div className="p-5 rounded-xl bg-card border border-border mt-8 space-y-4 shadow-sm">
+          <div className="flex items-center justify-between pb-2.5 border-b border-border">
+            <div className="flex items-center gap-2 text-foreground text-xs font-semibold uppercase tracking-wider">
+              <HelpCircle className="w-4 h-4 text-primary" /> Micro-Knowledge Check ({quickQuizList.length} Questions)
             </div>
             <span className="text-[11px] text-slate-400">Validate concepts before practice</span>
           </div>
@@ -342,13 +351,35 @@ export default function LearnDayPage({
         </div>
       </div>
 
-      {/* Slide-out AI Mentor Drawer */}
+      {/* Next Step Transition Card */}
+      <div className="p-5 rounded-xl bg-card border border-border flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+        <div className="space-y-1 text-center sm:text-left">
+          <div className="flex items-center justify-center sm:justify-start gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <span>Ready for Hands-on Code?</span>
+          </div>
+          <h3 className="text-sm font-bold text-foreground">
+            Step 2: Interactive Practice Drills Sandbox
+          </h3>
+          <p className="text-xs text-muted-foreground max-w-xl">
+            Execute SQL queries against in-memory datasets with instant feedback, schema viewer, and progressive Socratic hints.
+          </p>
+        </div>
+        <Link
+          href={practiceUrl}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-sm transition-colors whitespace-nowrap"
+        >
+          <span>Continue to Step 2: Practice</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
+      </div>
+
+      {/* Slide-out Technical Mentor Drawer */}
       {isMentorOpen && (
-        <div className="fixed inset-y-0 right-0 w-full sm:w-96 bg-slate-950 border-l border-slate-800 z-50 flex flex-col shadow-2xl animate-in slide-in-from-right duration-200">
-          <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
-            <div className="flex items-center gap-2 text-cyan-400 font-bold text-xs">
-              <Bot className="w-4 h-4" />
-              <span>AI Technical Mentor (Qwen 2.5)</span>
+        <div className="fixed inset-y-0 right-0 w-full sm:w-96 bg-card border-l border-border z-50 flex flex-col shadow-2xl animate-in slide-in-from-right duration-200">
+          <div className="p-4 border-b border-border flex items-center justify-between bg-muted/40">
+            <div className="flex items-center gap-2 text-foreground font-semibold text-xs">
+              <Bot className="w-4 h-4 text-primary" />
+              <span>Praxis Technical Mentor</span>
             </div>
             <button
               onClick={() => setIsMentorOpen(false)}

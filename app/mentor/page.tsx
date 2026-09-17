@@ -14,13 +14,10 @@ import {
   Loader2,
   ChevronDown,
   Sparkles,
-  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 
 type MentorMode = "socratic" | "debugger" | "business" | "interview";
 
@@ -29,6 +26,12 @@ interface ModeConfig {
   label: string;
   icon: any;
   chips: string[];
+}
+
+interface ChatMessage {
+  sender: "user" | "mentor";
+  message: string;
+  isTyping?: boolean;
 }
 
 const MODES: ModeConfig[] = [
@@ -75,10 +78,10 @@ const MODES: ModeConfig[] = [
 ];
 
 export default function MentorPage() {
-  const [activeModel, setActiveModel] = useState("Gemini 2.0 Flash");
+  const [activeModel, setActiveModel] = useState("Gemini 2.5 Flash");
   const [activeMode, setActiveMode] = useState<MentorMode>("socratic");
   const [showModeDropdown, setShowModeDropdown] = useState(false);
-  const [messages, setMessages] = useState<any[]>([
+  const [messages, setMessages] = useState<ChatMessage[]>([
     {
       sender: "mentor",
       message:
@@ -87,8 +90,10 @@ export default function MentorPage() {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     fetch("/api/ollama/status")
@@ -105,8 +110,9 @@ export default function MentorPage() {
         const res = await fetch("/api/mentor/chat");
         if (res.ok) {
           const data = await res.json();
-          if (data.history && data.history.length > 0) {
-            setMessages(data.history);
+          const msgs = data.messages || data.history;
+          if (msgs && msgs.length > 0) {
+            setMessages(msgs);
           }
         }
       } catch {}
@@ -116,7 +122,7 @@ export default function MentorPage() {
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+  }, [messages, loading, isTyping]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -128,14 +134,17 @@ export default function MentorPage() {
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      if (typingTimerRef.current) clearInterval(typingTimerRef.current);
+    };
   }, []);
 
   const handleSend = async (customText?: string) => {
     const textToSend = customText || input;
-    if (!textToSend.trim() || loading) return;
+    if (!textToSend.trim() || loading || isTyping) return;
 
-    const userMsg = { sender: "user", message: textToSend };
+    const userMsg: ChatMessage = { sender: "user", message: textToSend };
     setMessages((prev) => [...prev, userMsg]);
     if (!customText) setInput("");
     setLoading(true);
@@ -149,11 +158,51 @@ export default function MentorPage() {
 
       if (!res.ok) throw new Error("Mentor response failed");
       const data = await res.json();
+      const fullText: string = data.message || "I'm here to help!";
+
+      // Stop loading spinner and start typing animation
+      setLoading(false);
+      setIsTyping(true);
+
+      // Add empty placeholder message that will be typed out
       setMessages((prev) => [
         ...prev,
-        { sender: "mentor", message: data.message },
+        { sender: "mentor", message: "", isTyping: true },
       ]);
+
+      let charIndex = 0;
+      // Adaptive chunk size so typing is snappy and never sluggish
+      const chunkSize = Math.max(3, Math.floor(fullText.length / 70));
+
+      typingTimerRef.current = setInterval(() => {
+        charIndex += chunkSize;
+        if (charIndex >= fullText.length) {
+          if (typingTimerRef.current) clearInterval(typingTimerRef.current);
+          setMessages((prev) => {
+            const copy = [...prev];
+            copy[copy.length - 1] = {
+              sender: "mentor",
+              message: fullText,
+              isTyping: false,
+            };
+            return copy;
+          });
+          setIsTyping(false);
+        } else {
+          const currentSlice = fullText.slice(0, charIndex);
+          setMessages((prev) => {
+            const copy = [...prev];
+            copy[copy.length - 1] = {
+              sender: "mentor",
+              message: currentSlice,
+              isTyping: true,
+            };
+            return copy;
+          });
+        }
+      }, 20);
     } catch {
+      setLoading(false);
       setMessages((prev) => [
         ...prev,
         {
@@ -162,8 +211,6 @@ export default function MentorPage() {
             "I'm having trouble connecting right now. Please try again in a moment.",
         },
       ]);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -180,7 +227,7 @@ export default function MentorPage() {
           </div>
           <div>
             <h2 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-2">
-              AI Technical Mentor
+              Praxis Technical Mentor
               <Badge variant="outline" className="text-[10px] font-normal py-0 h-4 border-primary/30 text-primary">
                 {activeModel}
               </Badge>
@@ -265,7 +312,12 @@ export default function MentorPage() {
                 <p className="whitespace-pre-line">{m.message}</p>
               ) : (
                 <div className="prose prose-invert prose-xs max-w-none">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.message}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {m.message}
+                  </ReactMarkdown>
+                  {m.isTyping && (
+                    <span className="inline-block w-1.5 h-3.5 bg-primary ml-1 translate-y-0.5 animate-pulse rounded-xs" />
+                  )}
                 </div>
               )}
             </div>
@@ -279,7 +331,7 @@ export default function MentorPage() {
             </div>
             <div className="px-4 py-2.5 rounded-xl rounded-tl-none bg-card border border-border text-xs text-muted-foreground flex items-center gap-2 shadow-sm">
               <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
-              <span>Thinking with {activeModel}...</span>
+              <span>{activeModel} is generating response...</span>
             </div>
           </div>
         )}
@@ -293,7 +345,8 @@ export default function MentorPage() {
             <button
               key={idx}
               onClick={() => handleSend(chip)}
-              className="px-2.5 py-1 rounded-md bg-muted/60 hover:bg-muted text-[11px] text-muted-foreground hover:text-foreground border border-border/60 transition-colors whitespace-nowrap flex-shrink-0"
+              disabled={loading || isTyping}
+              className="px-2.5 py-1 rounded-md bg-muted/60 hover:bg-muted text-[11px] text-muted-foreground hover:text-foreground border border-border/60 transition-colors whitespace-nowrap flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {chip}
             </button>
@@ -307,12 +360,13 @@ export default function MentorPage() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
             placeholder={`Ask in ${currentMode.label} mode...`}
+            disabled={loading || isTyping}
             className="flex-1 bg-card border-border text-xs h-9"
           />
           <Button
             size="sm"
             onClick={() => handleSend()}
-            disabled={loading || !input.trim()}
+            disabled={loading || isTyping || !input.trim()}
             className="h-9 px-3 gap-1.5"
           >
             <span>Send</span>

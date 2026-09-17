@@ -7,12 +7,12 @@ export async function GET() {
     // New unified fields
     activeProvider: status.activeProvider,
     geminiConfigured: status.geminiConfigured,
-    geminiModel: "gemini-2.0-flash",
+    geminiModel: "gemini-2.5-flash",
     // Backward compatible fields
     connected: status.geminiConfigured || status.ollamaConnected,
-    activeModel: status.geminiConfigured ? "gemini-2.0-flash" : status.ollamaModel,
+    activeModel: status.geminiConfigured ? "Gemini 2.5 Flash" : status.ollamaModel,
     availableModels: status.geminiConfigured
-      ? ["gemini-2.0-flash", ...status.availableOllamaModels]
+      ? ["Gemini 2.5 Flash", ...status.availableOllamaModels]
       : status.availableOllamaModels,
     ollamaConnected: status.ollamaConnected,
   });

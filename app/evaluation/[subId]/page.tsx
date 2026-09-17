@@ -21,6 +21,7 @@ import {
   FileCode,
 } from "lucide-react";
 import confetti from "canvas-confetti";
+import { DailyStepper } from "@/components/DailyStepper";
 
 interface EvaluationData {
   id: string;
@@ -187,38 +188,47 @@ export default function EvaluationPage({ params }: { params: { subId: string } }
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-16">
+      {/* Daily Progress Stepper */}
+      <DailyStepper
+        currentStep={4}
+        dayNumber={dayNum}
+        dayId={data?.submission?.assignment?.day?.id}
+        assignmentId={data?.submission?.assignment?.id}
+        submissionId={data?.submission?.id || params.subId}
+      />
+
       {/* Hero Score Banner */}
-      <div className="p-8 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-700 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+      <div className="p-6 rounded-xl bg-card border border-border shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-5">
             <div
-              className={`w-20 h-20 rounded-2xl bg-gradient-to-tr ${
-                passed ? "from-emerald-500 to-teal-400 shadow-glow-emerald" : "from-rose-500 to-amber-500 shadow-glow"
-              } flex flex-col items-center justify-center text-slate-950 font-black`}
+              className={`w-16 h-16 rounded-xl ${
+                passed ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+              } flex flex-col items-center justify-center font-bold`}
             >
-              <span className="text-3xl leading-none">{score}</span>
-              <span className="text-[10px] uppercase font-bold tracking-wider">/ 100</span>
+              <span className="text-2xl leading-none font-black">{score}</span>
+              <span className="text-[9px] uppercase tracking-wider text-muted-foreground mt-0.5">/ 100</span>
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <span
-                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider ${
                     passed
-                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
-                      : "bg-rose-500/20 text-rose-400 border border-rose-500/40"
+                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                      : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
                   } flex items-center gap-1`}
                 >
                   {passed ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
-                  {passed ? "Masai Standard Passed" : "Remedial Drill Required"}
+                  {passed ? "Passing Grade Achieved" : "Remediation Suggested"}
                 </span>
-                <span className="text-xs text-slate-400">Day {dayNum} Graded Assignment</span>
+                <span className="text-xs text-muted-foreground">Day {dayNum} Evaluation</span>
               </div>
-              <h1 className="text-2xl font-black text-white tracking-tight">
-                Hybrid Evaluation: Deterministic SQL + AI Grading
+              <h1 className="text-xl font-bold text-foreground tracking-tight">
+                Submission Scorecard & Code Analysis
               </h1>
-              <p className="text-xs text-slate-300 mt-1 max-w-xl">
+              <p className="text-xs text-muted-foreground mt-1 max-w-xl">
                 {data?.detailedFeedback ||
-                  "Strict multi-criteria evaluation completed. Submission meets production readiness criteria."}
+                  "Deterministic tests and multi-criteria evaluation completed."}
               </p>
             </div>
           </div>
@@ -228,18 +238,18 @@ export default function EvaluationPage({ params }: { params: { subId: string } }
               <button
                 onClick={handleUnlockNextDay}
                 disabled={unlocking}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-masai-red to-rose-600 hover:from-rose-600 hover:to-masai-red text-white text-xs font-black shadow-glow transition-all"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-sm transition-colors"
               >
-                <span>{unlocking ? "Unlocking Day..." : `Unlock Day ${dayNum + 1}`}</span>
-                <ArrowRight className="w-4 h-4" />
+                <span>{unlocking ? "Updating Status..." : `Advance to Day ${dayNum + 1}`}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
             ) : (
               <Link
                 href="/backlog"
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition-all"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-secondary hover:bg-secondary/80 text-secondary-foreground text-xs font-semibold border border-border transition-colors"
               >
                 <span>Open Remedial Center</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             )}
           </div>
@@ -326,17 +336,57 @@ export default function EvaluationPage({ params }: { params: { subId: string } }
           </pre>
         </div>
 
-        {/* AI Refactored Code */}
-        <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 shadow-xl space-y-2">
+        {/* Refactored Code */}
+        <div className="p-5 rounded-xl bg-card border border-border shadow-sm space-y-2">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-masai-accent" /> AI Refactored Code (Production Benchmark)
+            <h3 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-primary" /> Reference Solution
             </h3>
-            <span className="text-[10px] text-slate-500 font-mono">Qwen 2.5 Coder</span>
+            <span className="text-[10px] text-muted-foreground font-mono">Production Standard</span>
           </div>
-          <pre className="p-4 rounded-xl bg-slate-900 font-mono text-xs text-cyan-300 overflow-x-auto leading-relaxed border border-slate-800 h-64">
+          <pre className="p-4 rounded-lg bg-slate-950 font-mono text-xs text-cyan-300 overflow-x-auto leading-relaxed border border-border h-64">
             <code>{data?.codeDiff || data?.submission?.submittedCode || "-- Ideal solution code"}</code>
           </pre>
+        </div>
+      </div>
+
+      {/* Next Step Transition Banner */}
+      <div className="p-5 rounded-xl bg-card border border-border flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+        <div className="space-y-1 text-center sm:text-left">
+          <div className="flex items-center justify-center sm:justify-start gap-2 text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>{passed ? "Milestone Completed" : "Revision Suggested"}</span>
+          </div>
+          <h3 className="text-sm font-bold text-foreground">
+            {passed
+              ? `Day ${dayNum} Passed! Continue to Next Day on Curriculum Roadmap`
+              : "Review Weak Areas & Practice Remedial Drills"}
+          </h3>
+          <p className="text-xs text-muted-foreground max-w-xl">
+            {passed
+              ? "Your progress has been recorded. Advance to the next day to continue your career track."
+              : "Access the remedial backlog to reinforce concepts before your weekly assessment."}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          {passed ? (
+            <button
+              onClick={handleUnlockNextDay}
+              disabled={unlocking}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-sm transition-colors whitespace-nowrap"
+            >
+              <span>{unlocking ? "Saving..." : "Advance & View Roadmap"}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          ) : (
+            <Link
+              href="/backlog"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-secondary hover:bg-secondary/80 text-secondary-foreground text-xs font-semibold border border-border transition-colors whitespace-nowrap"
+            >
+              <span>Go to Remedial Backlog</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          )}
         </div>
       </div>
     </div>

@@ -4,8 +4,8 @@ import { AppShell } from "@/components/AppShell";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 export const metadata: Metadata = {
-  title: "AI Masai-Style Career LMS | Job-Ready Bootcamp",
-  description: "Disciplined career training platform powered by Gemini 2.0 Flash AI",
+  title: "Praxis — Engineering & Career Operating System",
+  description: "Disciplined, job-ready technical career bootcamp platform.",
 };
 
 export default function RootLayout({
