@@ -21,6 +21,9 @@ import {
   Lock,
 } from "lucide-react";
 import { DailyStepper } from "@/components/DailyStepper";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface QuickQuizItem {
   question: string;
@@ -145,8 +148,8 @@ export default function LearnDayPage({
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-96 space-y-3">
-        <Loader2 className="w-8 h-8 animate-spin text-masai-red" />
-        <p className="text-xs text-slate-400 font-medium">Loading lesson curriculum from database...</p>
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-xs text-muted-foreground font-medium">Loading lesson curriculum from database...</p>
       </div>
     );
   }
@@ -202,176 +205,180 @@ export default function LearnDayPage({
       {/* Top Breadcrumb & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
-            <Link href="/roadmap" className="hover:text-white transition-colors">
+          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+            <Link href="/roadmap" className="hover:text-foreground transition-colors">
               {dayData?.week?.module?.title || "Module 1 (SQL)"}
             </Link>
             <span>/</span>
-            <span className="text-masai-accent font-bold">
+            <span className="text-primary font-bold">
               Day {dayNumber} {dayData?.isCompleted ? "(Completed)" : "(Active)"}
             </span>
           </div>
-          <h1 className="text-2xl font-black text-white tracking-tight mt-1">
+          <h1 className="text-2xl font-extrabold text-foreground tracking-tight mt-1">
             {dayData?.title || `Day ${dayNumber}: Analytical Window Functions`}
           </h1>
           {dayData?.objective && (
-            <p className="text-xs text-slate-400 mt-1 max-w-2xl">{dayData.objective}</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-2xl">{dayData.objective}</p>
           )}
         </div>
 
         <div className="flex items-center gap-2.5">
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setIsMentorOpen(!isMentorOpen)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card hover:bg-muted text-foreground border border-border text-xs font-medium transition-colors shadow-sm"
+            className="gap-2 text-xs"
           >
             <Bot className="w-3.5 h-3.5 text-muted-foreground" />
             <span>Technical Mentor</span>
-          </button>
+          </Button>
 
-          <Link
-            href={practiceUrl}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-sm transition-colors"
-          >
-            <span>Start Practice Drills</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+          <Link href={practiceUrl}>
+            <Button size="sm" className="gap-1.5 text-xs font-semibold">
+              <span>Start Practice Drills</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Button>
           </Link>
         </div>
       </div>
 
       {/* Main Theory Card with Markdown Rendering */}
-      <div className="p-8 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl space-y-6 backdrop-blur-md">
-        <h2 className="text-lg font-bold text-white border-b border-slate-800 pb-2">
-          {dayData?.lesson?.title || "Lesson Notes & Theory"}
-        </h2>
+      <Card className="shadow-sm">
+        <CardContent className="p-6 md:p-8 space-y-6">
+          <h2 className="text-lg font-bold text-foreground border-b border-border pb-2">
+            {dayData?.lesson?.title || "Lesson Notes & Theory"}
+          </h2>
 
-        {/* Markdown Content */}
-        <div className="prose prose-invert max-w-none text-slate-300 text-xs sm:text-sm space-y-3 leading-relaxed">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {dayData?.lesson?.content || "No lesson content available."}
-          </ReactMarkdown>
-        </div>
-
-        {/* CheatSheet Code Box */}
-        {dayData?.lesson?.cheatSheet && (
-          <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800/80 my-4">
-            <div className="flex items-center justify-between text-xs font-bold text-slate-400 mb-2">
-              <span className="flex items-center gap-1.5 text-cyan-400">
-                <Code2 className="w-4 h-4" /> Production Syntax & Cheat Sheet
-              </span>
-              <button
-                onClick={() => copyCode(cheatSheetCode)}
-                className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors"
-              >
-                {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copied ? "Copied!" : "Copy SQL"}</span>
-              </button>
-            </div>
-            <pre className="p-4 rounded-lg bg-slate-900 font-mono text-xs text-cyan-300 overflow-x-auto">
-              <code>{cheatSheetCode}</code>
-            </pre>
-          </div>
-        )}
-
-        {/* Micro-Knowledge Check Widget */}
-        <div className="p-5 rounded-xl bg-card border border-border mt-8 space-y-4 shadow-sm">
-          <div className="flex items-center justify-between pb-2.5 border-b border-border">
-            <div className="flex items-center gap-2 text-foreground text-xs font-semibold uppercase tracking-wider">
-              <HelpCircle className="w-4 h-4 text-primary" /> Micro-Knowledge Check ({quickQuizList.length} Questions)
-            </div>
-            <span className="text-[11px] text-slate-400">Validate concepts before practice</span>
+          {/* Markdown Content */}
+          <div className="prose prose-slate max-w-none text-sm space-y-3 leading-relaxed">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {dayData?.lesson?.content || "No lesson content available."}
+            </ReactMarkdown>
           </div>
 
-          {quickQuizList.map((item, qIdx) => (
-            <div key={qIdx} className="space-y-2">
-              <h3 className="text-xs font-bold text-white">
-                {qIdx + 1}. {item.question}
-              </h3>
-
-              <div className="space-y-1.5">
-                {item.options.map((opt, optIdx) => {
-                  const isSelected = quizAnswers[qIdx] === opt;
-                  const isCorrect = opt === item.correctAnswer;
-                  return (
-                    <button
-                      key={optIdx}
-                      onClick={() => setQuizAnswers((prev) => ({ ...prev, [qIdx]: opt }))}
-                      className={`w-full text-left p-2.5 rounded-lg text-xs font-medium border transition-all ${
-                        isSelected
-                          ? quizSubmitted && isCorrect
-                            ? "bg-emerald-500/20 border-emerald-500 text-emerald-300"
-                            : quizSubmitted && !isCorrect
-                            ? "bg-rose-500/20 border-rose-500 text-rose-300"
-                            : "bg-masai-red/20 border-masai-red text-white"
-                          : "bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800/80"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span>{opt}</span>
-                        {quizSubmitted && isCorrect && isSelected && (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-
-          <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-slate-800">
-            <button
-              onClick={handleVerifyQuiz}
-              disabled={Object.keys(quizAnswers).length < quickQuizList.length}
-              className="px-4 py-2 rounded-lg bg-masai-red hover:bg-rose-600 disabled:opacity-40 text-white text-xs font-bold transition-colors shadow-glow"
-            >
-              Verify Understanding
-            </button>
-
-            {quizSubmitted && (
-              <div className="flex items-center gap-2">
-                {quizPassed ? (
-                  <span className="text-xs text-emerald-400 font-bold flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4" /> Passed! Ready for hands-on practice.
-                  </span>
-                ) : (
-                  <span className="text-xs text-amber-400 font-bold">
-                    Review incorrect answers above to strengthen conceptual clarity.
-                  </span>
-                )}
-                <Link
-                  href={practiceUrl}
-                  className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors flex items-center gap-1"
+          {/* CheatSheet Code Box */}
+          {dayData?.lesson?.cheatSheet && (
+            <div className="p-4 rounded-xl bg-slate-950 border border-slate-200 my-4">
+              <div className="flex items-center justify-between text-xs font-bold text-muted-foreground mb-2">
+                <span className="flex items-center gap-1.5 text-indigo-600">
+                  <Code2 className="w-4 h-4" /> Production Syntax & Cheat Sheet
+                </span>
+                <button
+                  onClick={() => copyCode(cheatSheetCode)}
+                  className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  <span>Go to Practice</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
+                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copied ? "Copied!" : "Copy SQL"}</span>
+                </button>
               </div>
-            )}
+              <pre className="p-4 rounded-lg bg-slate-900 font-mono text-xs text-cyan-300 overflow-x-auto">
+                <code>{cheatSheetCode}</code>
+              </pre>
+            </div>
+          )}
+
+          {/* Micro-Knowledge Check Widget */}
+          <div className="p-5 rounded-xl bg-muted/30 border border-border mt-8 space-y-4">
+            <div className="flex items-center justify-between pb-2.5 border-b border-border">
+              <div className="flex items-center gap-2 text-foreground text-xs font-semibold uppercase tracking-wider">
+                <HelpCircle className="w-4 h-4 text-primary" /> Micro-Knowledge Check ({quickQuizList.length} Questions)
+              </div>
+              <span className="text-[11px] text-muted-foreground">Validate concepts before practice</span>
+            </div>
+
+            {quickQuizList.map((item, qIdx) => (
+              <div key={qIdx} className="space-y-2">
+                <h3 className="text-xs font-bold text-foreground">
+                  {qIdx + 1}. {item.question}
+                </h3>
+
+                <div className="space-y-1.5">
+                  {item.options.map((opt, optIdx) => {
+                    const isSelected = quizAnswers[qIdx] === opt;
+                    const isCorrect = opt === item.correctAnswer;
+                    return (
+                      <button
+                        key={optIdx}
+                        onClick={() => setQuizAnswers((prev) => ({ ...prev, [qIdx]: opt }))}
+                        className={`w-full text-left p-2.5 rounded-lg text-xs font-medium border transition-all ${
+                          isSelected
+                            ? quizSubmitted && isCorrect
+                              ? "bg-emerald-50 border-emerald-300 text-emerald-800"
+                              : quizSubmitted && !isCorrect
+                              ? "bg-rose-50 border-rose-300 text-rose-800"
+                              : "bg-primary/10 border-primary text-foreground"
+                            : "bg-card border-border text-foreground hover:bg-muted/50"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span>{opt}</span>
+                          {quizSubmitted && isCorrect && isSelected && (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+
+            <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-border">
+              <Button
+                onClick={handleVerifyQuiz}
+                disabled={Object.keys(quizAnswers).length < quickQuizList.length}
+                size="sm"
+                className="font-bold"
+              >
+                Verify Understanding
+              </Button>
+
+              {quizSubmitted && (
+                <div className="flex items-center gap-2">
+                  {quizPassed ? (
+                    <span className="text-xs text-emerald-600 font-bold flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4" /> Passed! Ready for hands-on practice.
+                    </span>
+                  ) : (
+                    <span className="text-xs text-amber-600 font-bold">
+                      Review incorrect answers above to strengthen conceptual clarity.
+                    </span>
+                  )}
+                  <Link href={practiceUrl}>
+                    <Button size="sm" variant="outline" className="gap-1 text-xs">
+                      <span>Go to Practice</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Next Step Transition Card */}
-      <div className="p-5 rounded-xl bg-card border border-border flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
-        <div className="space-y-1 text-center sm:text-left">
-          <div className="flex items-center justify-center sm:justify-start gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            <span>Ready for Hands-on Code?</span>
+      <Card className="shadow-sm">
+        <CardContent className="p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="space-y-1 text-center sm:text-left">
+            <div className="flex items-center justify-center sm:justify-start gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <span>Ready for Hands-on Code?</span>
+            </div>
+            <h3 className="text-sm font-bold text-foreground">
+              Step 2: Interactive Practice Drills Sandbox
+            </h3>
+            <p className="text-xs text-muted-foreground max-w-xl">
+              Execute SQL queries against in-memory datasets with instant feedback, schema viewer, and progressive Socratic hints.
+            </p>
           </div>
-          <h3 className="text-sm font-bold text-foreground">
-            Step 2: Interactive Practice Drills Sandbox
-          </h3>
-          <p className="text-xs text-muted-foreground max-w-xl">
-            Execute SQL queries against in-memory datasets with instant feedback, schema viewer, and progressive Socratic hints.
-          </p>
-        </div>
-        <Link
-          href={practiceUrl}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-sm transition-colors whitespace-nowrap"
-        >
-          <span>Continue to Step 2: Practice</span>
-          <ArrowRight className="w-3.5 h-3.5" />
-        </Link>
-      </div>
+          <Link href={practiceUrl}>
+            <Button className="gap-1.5 text-xs font-semibold whitespace-nowrap">
+              <span>Continue to Step 2: Practice</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
 
       {/* Slide-out Technical Mentor Drawer */}
       {isMentorOpen && (
@@ -383,7 +390,7 @@ export default function LearnDayPage({
             </div>
             <button
               onClick={() => setIsMentorOpen(false)}
-              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+              className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
             >
               <X className="w-4 h-4" />
             </button>
@@ -395,25 +402,25 @@ export default function LearnDayPage({
                 key={idx}
                 className={`p-3 rounded-xl text-xs ${
                   m.sender === "user"
-                    ? "bg-masai-red/20 text-slate-100 ml-6 border border-masai-red/30"
-                    : "bg-slate-900 text-slate-300 mr-6 border border-slate-800"
+                    ? "bg-primary/10 text-foreground ml-6 border border-primary/20"
+                    : "bg-muted text-foreground mr-6 border border-border"
                 }`}
               >
-                <span className="text-[10px] font-bold block uppercase mb-1 text-slate-400">
+                <span className="text-[10px] font-bold block uppercase mb-1 text-muted-foreground">
                   {m.sender === "user" ? "You" : "Mentor"}
                 </span>
                 <p className="whitespace-pre-wrap">{m.message}</p>
               </div>
             ))}
             {mentorSending && (
-              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-400 flex items-center gap-2">
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+              <div className="p-3 rounded-xl bg-muted border border-border text-xs text-muted-foreground flex items-center gap-2">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
                 <span>Mentor is analyzing question...</span>
               </div>
             )}
           </div>
 
-          <div className="p-3 border-t border-slate-800 bg-slate-900/40">
+          <div className="p-3 border-t border-border bg-muted/20">
             <div className="flex items-center gap-2">
               <input
                 type="text"
@@ -421,15 +428,16 @@ export default function LearnDayPage({
                 onChange={(e) => setMentorInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSendMentor()}
                 placeholder="Ask about this SQL lesson..."
-                className="flex-1 p-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
+                className="flex-1 p-2 rounded-lg bg-card border border-border text-xs text-foreground focus:outline-none focus:border-primary"
               />
-              <button
+              <Button
+                size="sm"
                 onClick={handleSendMentor}
                 disabled={mentorSending}
-                className="p-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white transition-colors"
+                className="h-8 px-3"
               >
                 <Send className="w-3.5 h-3.5" />
-              </button>
+              </Button>
             </div>
           </div>
         </div>

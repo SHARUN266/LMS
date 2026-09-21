@@ -96,10 +96,11 @@ export default function MentorPage() {
   const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    fetch("/api/ollama/status")
+    fetch("/api/ai/status")
       .then((res) => res.json())
       .then((data) => {
-        if (data.activeModel) setActiveModel(data.activeModel);
+        if (data.model) setActiveModel(data.model);
+        else if (data.activeModel) setActiveModel(data.activeModel);
       })
       .catch(() => {});
   }, []);

@@ -8,6 +8,5 @@ export async function GET() {
     geminiConfigured: status.geminiConfigured,
     model: status.model,
     connected: true,
-    activeModel: "Gemini 2.5 Flash",
   });
 }

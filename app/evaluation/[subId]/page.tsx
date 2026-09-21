@@ -259,22 +259,22 @@ export default function EvaluationPage({ params }: { params: { subId: string } }
       {/* Rubric Breakdown Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
-          { label: "Deterministic SQL", val: rubricScoresMap.correctness ?? 36, max: 40, color: "text-emerald-400" },
-          { label: "Query Logic", val: rubricScoresMap.queryLogic ?? 18, max: 20, color: "text-cyan-400" },
-          { label: "Edge Cases", val: rubricScoresMap.edgeCases ?? 12, max: 15, color: "text-amber-400" },
-          { label: "Performance", val: rubricScoresMap.performance ?? 9, max: 10, color: "text-emerald-400" },
-          { label: "Readability", val: rubricScoresMap.readability ?? 8, max: 10, color: "text-slate-300" },
-          { label: "Explanation", val: rubricScoresMap.explanation ?? 3, max: 5, color: "text-slate-400" },
+          { label: "Deterministic SQL", val: rubricScoresMap.correctness ?? 36, max: 40, color: "text-emerald-600" },
+          { label: "Query Logic", val: rubricScoresMap.queryLogic ?? 18, max: 20, color: "text-indigo-600" },
+          { label: "Edge Cases", val: rubricScoresMap.edgeCases ?? 12, max: 15, color: "text-amber-600" },
+          { label: "Performance", val: rubricScoresMap.performance ?? 9, max: 10, color: "text-emerald-600" },
+          { label: "Readability", val: rubricScoresMap.readability ?? 8, max: 10, color: "text-slate-700" },
+          { label: "Explanation", val: rubricScoresMap.explanation ?? 3, max: 5, color: "text-slate-600" },
         ].map((r, idx) => {
           const pct = Math.round((r.val / r.max) * 100);
           return (
-            <div key={idx} className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 text-center space-y-1">
-              <span className="text-[11px] text-slate-400 block truncate">{r.label}</span>
+            <div key={idx} className="p-3.5 rounded-xl bg-card border border-border text-center space-y-1 shadow-xs">
+              <span className="text-[11px] text-muted-foreground block truncate font-medium">{r.label}</span>
               <span className={`text-base font-black ${r.color} block`}>
                 {r.val} / {r.max}
               </span>
-              <div className="w-full bg-slate-950 h-1 rounded-full overflow-hidden">
-                <div className="bg-emerald-500 h-full" style={{ width: `${pct}%` }} />
+              <div className="w-full bg-slate-100 h-1 rounded-full overflow-hidden">
+                <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${pct}%` }} />
               </div>
             </div>
           );
@@ -284,38 +284,38 @@ export default function EvaluationPage({ params }: { params: { subId: string } }
       {/* Strengths & Weaknesses Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Strengths */}
-        <div className="p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl space-y-3">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+        <div className="p-6 rounded-2xl bg-card border border-border shadow-xs space-y-3">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-600 flex items-center gap-1.5">
             <CheckCircle2 className="w-4 h-4" /> Demonstrated Strengths
           </h3>
-          <ul className="space-y-2 text-xs text-slate-300">
+          <ul className="space-y-2.5 text-xs text-slate-700">
             {strengthsList.map((str, idx) => (
-              <li key={idx} className="flex items-start gap-2">
-                <span className="text-emerald-400 font-bold">✓</span>
-                <span>{str}</span>
+              <li key={idx} className="flex items-start gap-2 bg-emerald-50/50 p-2 rounded-lg border border-emerald-100">
+                <span className="text-emerald-600 font-bold">✓</span>
+                <span className="text-slate-800 leading-relaxed">{str}</span>
               </li>
             ))}
           </ul>
         </div>
 
         {/* Weak Areas & Remediation */}
-        <div className="p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl space-y-3">
+        <div className="p-6 rounded-2xl bg-card border border-border shadow-xs space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-amber-600 flex items-center gap-1.5">
               <AlertTriangle className="w-4 h-4" /> Areas for Remediation
             </h3>
             <button
               onClick={handleCreateCustomDrill}
-              className="text-[10px] font-bold px-2 py-1 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition-colors"
+              className="text-[10px] font-bold px-2 py-1 rounded-md bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 border border-amber-300 transition-colors"
             >
               {drillCreated ? "Drill Added to Backlog!" : "+ Create Remedial Drill"}
             </button>
           </div>
-          <ul className="space-y-2 text-xs text-slate-300">
+          <ul className="space-y-2.5 text-xs text-slate-700">
             {weakAreasList.map((weak, idx) => (
-              <li key={idx} className="flex items-start gap-2">
-                <span className="text-amber-400 font-bold">!</span>
-                <span>{weak}</span>
+              <li key={idx} className="flex items-start gap-2 bg-amber-50/50 p-2 rounded-lg border border-amber-100">
+                <span className="text-amber-600 font-bold">!</span>
+                <span className="text-slate-800 leading-relaxed">{weak}</span>
               </li>
             ))}
           </ul>
@@ -325,26 +325,26 @@ export default function EvaluationPage({ params }: { params: { subId: string } }
       {/* Code Submitted vs AI Refactored Solution */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Student Code */}
-        <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 shadow-xl space-y-2">
+        <div className="p-5 rounded-2xl bg-card border border-border shadow-xs space-y-2">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+            <h3 className="text-xs font-bold text-foreground flex items-center gap-1.5">
               <FileCode className="w-4 h-4 text-slate-400" /> Your Submitted Solution
             </h3>
           </div>
-          <pre className="p-4 rounded-xl bg-slate-900 font-mono text-xs text-slate-300 overflow-x-auto leading-relaxed border border-slate-800 h-64">
+          <pre className="p-4 rounded-xl bg-slate-950 font-mono text-xs text-slate-200 overflow-x-auto leading-relaxed border border-slate-900 h-64">
             <code>{data?.submission?.submittedCode || "-- No submission code"}</code>
           </pre>
         </div>
 
         {/* Refactored Code */}
-        <div className="p-5 rounded-xl bg-card border border-border shadow-sm space-y-2">
+        <div className="p-5 rounded-2xl bg-card border border-border shadow-xs space-y-2">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-bold text-foreground flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-primary" /> Reference Solution
+              <Sparkles className="w-3.5 h-3.5 text-indigo-600" /> Reference Solution
             </h3>
             <span className="text-[10px] text-muted-foreground font-mono">Production Standard</span>
           </div>
-          <pre className="p-4 rounded-lg bg-slate-950 font-mono text-xs text-cyan-300 overflow-x-auto leading-relaxed border border-border h-64">
+          <pre className="p-4 rounded-xl bg-slate-950 font-mono text-xs text-cyan-300 overflow-x-auto leading-relaxed border border-slate-900 h-64">
             <code>{data?.codeDiff || data?.submission?.submittedCode || "-- Ideal solution code"}</code>
           </pre>
         </div>

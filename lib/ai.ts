@@ -1,4 +1,4 @@
-// Unified AI Engine: Google Gemini 2.0 Flash (Primary) + Local Ollama (Secondary) + Rule-Based Fallback
+// Unified AI Engine: Google Gemini 2.5 / 2.0 Flash (Primary) + Intelligent Deterministic Fallback
 
 export interface RubricScores {
   correctness: number; // Max 40
@@ -18,7 +18,7 @@ export interface EvaluationResult {
   codeDiff: string;
   detailedFeedback: string;
   remedialTasks: string[];
-  provider?: "gemini-2.0-flash" | "ollama" | "deterministic";
+  provider?: "gemini" | "deterministic";
 }
 
 export interface ProjectEvaluationResult {
@@ -27,62 +27,33 @@ export interface ProjectEvaluationResult {
   businessScore: number;
   recruiterSummary: string;
   feedback: string;
-  provider?: "gemini-2.0-flash" | "ollama" | "deterministic";
+  provider?: "gemini" | "deterministic";
 }
 
 export interface AIProviderStatus {
-  activeProvider: "gemini-2.0-flash" | "ollama" | "deterministic";
+  activeProvider: "gemini" | "deterministic";
   geminiConfigured: boolean;
-  ollamaConnected: boolean;
-  ollamaModel: string;
-  availableOllamaModels: string[];
+  model: string;
 }
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434";
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "qwen2.5-coder";
 
 // -------------------------------------------------------------
 // 1. Health & Connection Checks
 // -------------------------------------------------------------
-export async function checkOllamaConnection(): Promise<{ connected: boolean; models: string[] }> {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 2000);
-    const res = await fetch(`${OLLAMA_BASE_URL}/api/tags`, { signal: controller.signal });
-    clearTimeout(timeout);
-    if (!res.ok) return { connected: false, models: [] };
-    const data = await res.json();
-    const models = (data.models || []).map((m: { name: string }) => m.name);
-    return { connected: true, models };
-  } catch {
-    return { connected: false, models: [] };
-  }
-}
-
 export async function getAIStatus(): Promise<AIProviderStatus> {
-  const ollamaStatus = await checkOllamaConnection();
   const hasGemini = Boolean(GEMINI_API_KEY && GEMINI_API_KEY.trim().length > 10);
 
-  let activeProvider: "gemini-2.0-flash" | "ollama" | "deterministic" = "deterministic";
-  if (hasGemini) {
-    activeProvider = "gemini-2.0-flash";
-  } else if (ollamaStatus.connected) {
-    activeProvider = "ollama";
-  }
-
   return {
-    activeProvider,
+    activeProvider: hasGemini ? "gemini" : "deterministic",
     geminiConfigured: hasGemini,
-    ollamaConnected: ollamaStatus.connected,
-    ollamaModel: OLLAMA_MODEL,
-    availableOllamaModels: ollamaStatus.models,
+    model: hasGemini ? GEMINI_MODEL : "Rule-Based Engine",
   };
 }
 
 // -------------------------------------------------------------
-// 2. Google Gemini 2.0 Flash Core Helpers
+// 2. Google Gemini Core Caller
 // -------------------------------------------------------------
 async function callGemini(
   prompt: string,
@@ -120,76 +91,85 @@ async function callGemini(
     payload.generationConfig.responseMimeType = "application/json";
   }
 
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-    signal: controller.signal,
-  });
-  clearTimeout(timeout);
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
 
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "");
-    throw new Error(`Gemini API error (${res.status}): ${errorText}`);
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Gemini API returned status ${res.status}: ${errText}`);
+    }
+
+    const data = await res.json();
+    const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!candidateText) {
+      throw new Error("Gemini returned empty candidate response");
+    }
+
+    return candidateText;
+  } catch (err: any) {
+    clearTimeout(timeout);
+    throw err;
   }
-
-  const data = await res.json();
-  const candidate = data.candidates?.[0];
-  const responseText = candidate?.content?.parts?.[0]?.text;
-
-  if (!responseText) {
-    throw new Error("Empty response from Gemini API");
-  }
-
-  return responseText;
 }
 
 // -------------------------------------------------------------
-// 3. Automated Code & Submission Evaluation
+// 3. Assignment Code Evaluation Engine
 // -------------------------------------------------------------
-export async function evaluateCodeSubmission(
-  submittedCode: string,
+export async function evaluateAssignmentSubmission(
   assignmentTitle: string,
-  problemPrompt: string,
-  category: string = "SQL"
+  assignmentDescription: string,
+  submittedCode: string,
+  learnerNotes?: string,
+  category: string = "SQL & Analytics Modeling"
 ): Promise<EvaluationResult> {
-  const systemInstruction = `You are a Principal Analytics Engineer and strict Masai School Technical Evaluator.
-Evaluate the student's submission with deep technical rigor, production standards, and Claude-level nuanced analysis.
-Pay special attention to edge cases (NULLs, divide-by-zero, empty partitions), query performance, readability, and idiomatic practices.`;
+  const systemInstruction = `You are a Principal Business Analyst & Senior Analytics Engineer evaluating code submissions against strict commercial standards.
+Evaluate with high rigor across 6 rubric dimensions (Total 100%):
+1. Correctness & Deterministic Output (40% Weight)
+2. Query / Model Logic & Structure (20% Weight)
+3. Edge Cases & NULL / Exception Handling (15% Weight)
+4. Performance, Indexability & Scalability (10% Weight)
+5. Readability & Casing/Formatting Conventions (10% Weight)
+6. Architecture Notes & Business Explanation (5% Weight)
 
-  const userPrompt = `Evaluate this student's submission for the following assignment:
-
-Assignment Title: ${assignmentTitle}
-Problem Category: ${category}
-
-Problem Statement:
-${problemPrompt}
-
-Student Submitted Code:
-\`\`\`${category.toLowerCase()}
-${submittedCode}
-\`\`\`
-
-Return a strictly valid JSON response matching this schema:
+Benchmark passing standard is 70%.
+Output strictly in valid JSON matching this schema:
 {
-  "score": <integer between 0 and 100>,
-  "passed": <boolean, true if score >= 70>,
+  "score": <number 0-100>,
+  "passed": <boolean>,
   "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
-  "weakAreas": ["<weak area 1>", "<weak area 2>"],
+  "weakAreas": ["<weakness 1>", "<weakness 2>"],
   "rubricScores": {
-    "correctness": <integer 0-40>,
-    "queryLogic": <integer 0-20>,
-    "edgeCases": <integer 0-15>,
-    "performance": <integer 0-10>,
-    "readability": <integer 0-10>,
-    "explanation": <integer 0-5>
+    "correctness": <number 0-40>,
+    "queryLogic": <number 0-20>,
+    "edgeCases": <number 0-15>,
+    "performance": <number 0-10>,
+    "readability": <number 0-10>,
+    "explanation": <number 0-5>
   },
-  "codeDiff": "<Clean, production-grade refactored solution with helpful inline comments>",
-  "detailedFeedback": "<Thorough 2-3 paragraph breakdown explaining the reasoning behind the grade and constructive steps to improve>",
-  "remedialTasks": ["<specific remedial topic 1>", "<specific remedial topic 2>"]
+  "codeDiff": "<Clean, production-grade refactored code with commentary>",
+  "detailedFeedback": "<Detailed, constructive feedback on how to elevate the code to top 1% industry standards>",
+  "remedialTasks": ["<topic 1 to review>", "<topic 2 to review>"]
 }`;
 
-  // STEP 1: Attempt Gemini 2.0 Flash
+  const userPrompt = `Assignment: ${assignmentTitle}
+Description: ${assignmentDescription}
+Category: ${category}
+
+Learner Notes:
+${learnerNotes || "No notes provided"}
+
+Submitted Code:
+\`\`\`
+${submittedCode}
+\`\`\``;
+
+  // STEP 1: Attempt Gemini
   if (GEMINI_API_KEY) {
     try {
       const rawJson = await callGemini(userPrompt, systemInstruction, true);
@@ -197,46 +177,15 @@ Return a strictly valid JSON response matching this schema:
       if (typeof parsed.score === "number" && parsed.rubricScores) {
         return {
           ...parsed,
-          provider: "gemini-2.0-flash",
+          provider: "gemini",
         };
       }
     } catch (err) {
-      console.warn("Gemini 2.0 Flash evaluation failed, falling back to Ollama:", err);
+      console.warn("Gemini evaluation failed, falling back to deterministic engine:", err);
     }
   }
 
-  // STEP 2: Fallback to Local Ollama
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000);
-    const res = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: OLLAMA_MODEL,
-        prompt: `${systemInstruction}\n\n${userPrompt}`,
-        stream: false,
-        format: "json",
-      }),
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-
-    if (res.ok) {
-      const data = await res.json();
-      const parsed = JSON.parse(data.response.trim());
-      if (typeof parsed.score === "number") {
-        return {
-          ...parsed,
-          provider: "ollama",
-        };
-      }
-    }
-  } catch (ollamaErr) {
-    console.warn("Ollama evaluation also offline, using deterministic rule engine:", ollamaErr);
-  }
-
-  // STEP 3: Deterministic Rule-Based Fallback
+  // STEP 2: Deterministic Rule-Based Fallback
   return deterministicCodeEvaluation(submittedCode, category);
 }
 
@@ -265,12 +214,12 @@ function deterministicCodeEvaluation(submittedCode: string, category: string): E
     strengths: [
       hasJoin ? "Proper relational JOIN structure applied" : "Clean projection syntax",
       hasWhere ? "Appropriate filtering conditions included" : "Standard query syntax followed",
-      "Follows proper casing conventions for SQL keywords",
+      "Follows proper casing conventions for keywords and identifiers",
     ],
     weakAreas: [
-      "NULL value handling in conditional aggregates could be improved with COALESCE",
-      "Consider indexing foreign keys when scaling to high-volume tables",
-      "Could utilize Common Table Expressions (CTEs) for enhanced modularity",
+      "NULL value handling in conditional aggregates could be improved with COALESCE / NVL",
+      "Consider indexing foreign keys when scaling to high-volume transaction tables",
+      "Could utilize Common Table Expressions (CTEs) for enhanced readability",
     ],
     rubricScores: {
       correctness: Math.round(baseScore * 0.38),
@@ -294,7 +243,7 @@ WITH RankedOrders AS (
     WHERE o.status = 'COMPLETED' OR o.status IS NULL
 )
 SELECT * FROM RankedOrders WHERE rank_by_spend <= 3;`,
-    detailedFeedback: `Your query demonstrates solid structural understanding of ${category}. To reach elite analytics engineering standards, ensure all edge cases involving NULL values and tie-breaks in window functions are explicitly handled using COALESCE and DENSE_RANK.`,
+    detailedFeedback: `Your solution demonstrates solid structural understanding of ${category}. To reach elite enterprise standards, ensure all edge cases involving NULL values and tie-breaks in analytical partitions are explicitly handled using COALESCE and DENSE_RANK.`,
     remedialTasks: [
       "SQL NULL Handling & COALESCE Drills",
       "Window Functions Partitioning & Ranking Exercises",
@@ -304,6 +253,35 @@ SELECT * FROM RankedOrders WHERE rank_by_spend <= 3;`,
 }
 
 export type MentorMode = "socratic" | "debugger" | "business" | "interview";
+
+export async function evaluateCodeSubmission(
+  arg1: string,
+  arg2?: string,
+  arg3?: string,
+  arg4?: string
+): Promise<EvaluationResult> {
+  // Check if first arg looks like code (starts with SELECT/WITH/import/def/etc) or title
+  if (arg1.toLowerCase().includes("select") || arg1.toLowerCase().includes("from") || arg1.includes("\n") || (arg2 && arg2.length < 50)) {
+    // evaluateCodeSubmission(submittedCode, assignmentTitle, questionPrompt, category)
+    return evaluateAssignmentSubmission(
+      arg2 || "Assignment Evaluation",
+      arg3 || "Technical Problem",
+      arg1,
+      undefined,
+      arg4 || "SQL & Analytics Modeling"
+    );
+  }
+
+  // evaluateAssignmentSubmission(title, description, code, notes, category)
+  return evaluateAssignmentSubmission(
+    arg1,
+    arg2 || "",
+    arg3 || "",
+    undefined,
+    arg4 || "SQL & Analytics Modeling"
+  );
+}
+
 
 // -------------------------------------------------------------
 // 4. Socratic AI Mentor & Career Coach
@@ -315,7 +293,7 @@ export async function chatWithMentor(
   mode: MentorMode = "socratic"
 ): Promise<string> {
   const modePrompts: Record<MentorMode, string> = {
-    socratic: `You are the Masai School Senior AI Career Mentor & Socratic Coach powered by high-IQ reasoning.
+    socratic: `You are the Senior Business Analyst AI Career Mentor & Socratic Coach powered by Google Gemini.
 Guidelines:
 1. Socratic Teaching: Do NOT provide copy-paste solutions immediately. Guide the learner with clues, execution order mental models, and small syntax snippets.
 2. Progressive disclosure: First explain concepts, then provide partial examples, then hints.
@@ -327,29 +305,28 @@ Guidelines:
 2. Pinpoint the exact line and logic causing failures or memory spikes.
 3. Show clean, refactored production-ready code with diffs and explain plan tips.`,
 
-    business: `You are a Chief Data Officer & Commercial Analytics Director.
+    business: `You are a Chief Data Officer & Commercial Strategy Director.
 Guidelines:
 1. Explain how queries, pipelines, and data models impact real business KPIs (CAC, LTV, Retention Cohorts, Churn, ARR, Gross Margin).
-2. Teach the student to think like a commercial business partner, not just a SQL typist.
-3. Ask the student what business decision their query will empower executive leadership to make.`,
+2. Teach the student to think like a commercial business partner and Business Analyst.
+3. Ask the student what business decision their query or dashboard will empower executive leadership to make.`,
 
-    interview: `You are a Senior Bar-Raiser Technical Interviewer at a Tier-1 tech company conducting a live technical interview for an Analytics Engineer / BI Developer role.
+    interview: `You are a Senior Bar-Raiser Technical Interviewer at a Tier-1 tech company conducting a live technical interview for a Business Analyst / Analytics Engineer role.
 Guidelines:
-1. Ask probing, deep technical interview questions on SQL, CTEs, Window functions, Indexing, and Lakehouse modeling.
+1. Ask probing, deep technical interview questions on SQL, CTEs, Window functions, Indexing, and BI Modeling.
 2. Challenge the candidate on edge cases (NULLs, scale to 100M rows, tie-breaks).
 3. Evaluate their answer strictly and give actionable interview feedback (Strong Hire, Lean Hire, No Hire signals).`,
   };
 
   const systemPrompt = `${modePrompts[mode] || modePrompts.socratic}
 
-Current Student Track: BI & Analytics Engineering
-Context: ${context || "General Analytics & Career Track"}
+Current Student Track: Business Analyst (BA) Career Track
+Context: ${context || "General Business Analytics & Financial Modeling"}
 `;
 
-  // STEP 1: Attempt Gemini 2.0 Flash
+  // STEP 1: Attempt Gemini
   if (GEMINI_API_KEY) {
     try {
-      // Build conversation turns for Gemini
       const conversationPrompt = history
         .slice(-6)
         .map((h) => `${h.role === "user" ? "Student" : "Mentor"}: ${h.content}`)
@@ -364,53 +341,23 @@ Context: ${context || "General Analytics & Career Track"}
         return reply.trim();
       }
     } catch (geminiErr) {
-      console.warn("Gemini mentor chat failed, trying Ollama:", geminiErr);
+      console.warn("Gemini mentor chat failed, using fallback:", geminiErr);
     }
   }
 
-  // STEP 2: Fallback to Local Ollama
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000);
-    const messages = [
-      { role: "system", content: systemPrompt },
-      ...history.slice(-6),
-      { role: "user", content: message },
-    ];
-
-    const res = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: OLLAMA_MODEL,
-        messages,
-        stream: false,
-      }),
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-
-    if (res.ok) {
-      const data = await res.json();
-      return data.message.content;
-    }
-  } catch (ollamaErr) {
-    console.warn("Ollama mentor chat also offline, using fallback response:", ollamaErr);
-  }
-
-  // STEP 3: Fallback response
+  // STEP 2: Fallback response
   return `### 💡 Mentor Guidance:
-When tackling this problem, think about the **execution order of SQL**:
-1. **FROM / JOIN**: First identify which tables contain your required dimensions and facts.
-2. **WHERE**: Filter out invalid or test records before any heavy aggregation.
-3. **GROUP BY**: Group by your business keys (e.g. \`customer_id\`, \`product_category\`).
-4. **HAVING / WINDOW**: Apply threshold filters or ranking.
+When tackling this Business Analysis problem, structure your thinking in 4 steps:
+1. **Business Objective**: First identify the core decision or KPI you need to answer.
+2. **Data & Dimensions**: Identify the primary fact and dimension tables/attributes.
+3. **Transformations & Logic**: Apply the appropriate filters, aggregations, and window partitions.
+4. **Stakeholder Synthesis**: Formulate an executive summary explaining what the metric means.
 
-*Try structuring your query with a CTE (\`WITH ... AS (...)\`) first and verify row counts at each step!*`;
+*Try breaking down your logic into small modular CTEs or Excel formulas, and verify intermediate results!*`;
 }
 
 // -------------------------------------------------------------
-// 5. Capstone Project 7-Day Evaluation
+// 5. Capstone Project Evaluation
 // -------------------------------------------------------------
 export async function evaluateCapstoneProject(
   projectTitle: string,
@@ -418,17 +365,17 @@ export async function evaluateCapstoneProject(
   githubUrl?: string,
   summaryText?: string
 ): Promise<ProjectEvaluationResult> {
-  const prompt = `You are a Principal Analytics Engineer & Hiring Manager at a top tech company evaluating a Masai School 7-Day Capstone Project.
+  const prompt = `You are a Director of Business Analytics & Hiring Manager evaluating a Business Analyst Capstone Project.
 Project Title: ${projectTitle}
 Business Brief: ${businessBrief}
 Candidate Deliverables:
-- GitHub Repository: ${githubUrl || "Not provided"}
+- GitHub / Artifact URL: ${githubUrl || "Not provided"}
 - Architecture & Execution Summary:
-${summaryText || "Completed 7-day analytics pipeline with cohort retention matrices and data mart modeling."}
+${summaryText || "Completed 7-day analytics pipeline with cohort retention matrices and executive reporting."}
 
 Evaluate candidate strictly against these 7 rubric criteria:
 1. Technical Accuracy (25%)
-2. Business Value & Metric Insight (20%)
+2. Business Value & Commercial Metric Insight (20%)
 3. Problem Solving & Framing (15%)
 4. Data Understanding (15%)
 5. Code Quality & Modularity (10%)
@@ -440,11 +387,11 @@ Respond strictly in JSON format:
   "overallScore": <integer between 60 and 98>,
   "technicalScore": <integer between 60 and 100>,
   "businessScore": <integer between 60 and 100>,
-  "recruiterSummary": "<2-sentence recruiter-ready testimonial highlighting candidate's readiness for Analytics Engineer / BI Developer roles>",
-  "feedback": "<Detailed technical review highlighting strengths, architectural soundness, and interview tips>"
+  "recruiterSummary": "<2-sentence recruiter-ready testimonial highlighting candidate's readiness for Business Analyst & Analytics roles>",
+  "feedback": "<Detailed review highlighting strengths, architectural soundness, and interview tips>"
 }`;
 
-  // STEP 1: Attempt Gemini 2.0 Flash
+  // STEP 1: Attempt Gemini
   if (GEMINI_API_KEY) {
     try {
       const rawJson = await callGemini(prompt, undefined, true);
@@ -456,56 +403,23 @@ Respond strictly in JSON format:
           businessScore: Number(parsed.businessScore || 90),
           recruiterSummary: parsed.recruiterSummary || "",
           feedback: parsed.feedback || "",
-          provider: "gemini-2.0-flash",
+          provider: "gemini",
         };
       }
     } catch (err) {
-      console.warn("Gemini project evaluation failed, falling back to Ollama:", err);
+      console.warn("Gemini project evaluation failed, using fallback:", err);
     }
   }
 
-  // STEP 2: Fallback to Local Ollama
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000);
-    const res = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: OLLAMA_MODEL,
-        prompt,
-        stream: false,
-        format: "json",
-      }),
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-
-    if (res.ok) {
-      const json = await res.json();
-      const parsed = JSON.parse(json.response);
-      return {
-        overallScore: Number(parsed.overallScore || 90),
-        technicalScore: Number(parsed.technicalScore || 92),
-        businessScore: Number(parsed.businessScore || 88),
-        recruiterSummary: parsed.recruiterSummary || "",
-        feedback: parsed.feedback || "",
-        provider: "ollama",
-      };
-    }
-  } catch (e) {
-    console.warn("Ollama project evaluation failed, using fallback:", e);
-  }
-
-  // STEP 3: Fallback result
+  // STEP 2: Fallback result
   return {
     overallScore: 92,
     technicalScore: 94,
     businessScore: 90,
     recruiterSummary:
-      "Candidate demonstrates production-grade analytical SQL engineering. Strong relational schema modeling, CTE pipelines, retention matrix computation, and clean executive summaries. Highly recommended for Analytics Engineer and BI Developer roles.",
+      "Candidate demonstrates production-grade Business Analytics and financial modeling. Strong relational schema modeling, CTE pipelines, retention matrix computation, and clean executive summaries. Highly recommended for Business Analyst and BI Consultant roles.",
     feedback:
-      "Excellent Lakehouse modeling. The cohort retention queries and customer lifetime value segmentations demonstrate real-world commercial intuition and high SQL proficiency. Clean documentation and modular CTEs.",
+      "Excellent commercial modeling. The cohort retention queries and customer lifetime value segmentations demonstrate real-world commercial intuition and high analytical proficiency. Clean documentation and modular structure.",
     provider: "deterministic",
   };
 }

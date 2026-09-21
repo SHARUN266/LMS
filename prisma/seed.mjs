@@ -32,8 +32,8 @@ async function main() {
   const user = await prisma.userProfile.create({
     data: {
       id: "user_default",
-      name: "Aman Gupta",
-      targetRole: "BI / Analytics Engineer",
+      name: "Sharun",
+      targetRole: "Business Analyst",
       dailyStudyGoal: 6,
       currentStreak: 12,
       longestStreak: 15,
@@ -46,9 +46,9 @@ async function main() {
   // 2. Track
   const track = await prisma.track.create({
     data: {
-      slug: "bi-analytics-engineer",
-      title: "BI & Analytics Engineering (Career Transition Track)",
-      description: "Complete 20-week rigorous bootcamp preparing career-switchers for Analytics Engineer, Data Analyst, and BI Developer roles.",
+      slug: "business-analyst-career-track",
+      title: "Business Analyst (BA) Career Track",
+      description: "Complete 20-week rigorous bootcamp preparing career-switchers for Business Analyst, Product Analyst, and BI Consultant roles.",
     },
   });
 
@@ -57,9 +57,9 @@ async function main() {
     data: {
       trackId: track.id,
       order: 1,
-      title: "Module 1: Advanced SQL for Analytics Engineering",
-      description: "Master relational modeling, complex multi-table joins, subqueries, CTEs, analytical window functions, performance optimization, and business metric calculations.",
-      icon: "database",
+      title: "Module 1: Advanced Excel & Business Financial Modeling",
+      description: "Master lookup algorithms (XLOOKUP, INDEX/MATCH), dynamic array formulas, nested logic, Pivot Tables, Scenario Modeling, and financial forecasting.",
+      icon: "excel",
     },
   });
 
@@ -1073,6 +1073,149 @@ ORDER BY month;`,
         isCompleted: m.day === 1,
       },
     });
+  }
+
+  // --- SEED MODULES 2 to 6 ---
+  const remainingModules = [
+    {
+      order: 2,
+      title: "Module 2: SQL & Database Querying for Business Intelligence",
+      description: "Extract business insights using complex relational multi-table joins, subqueries, CTEs, analytical window functions, and cohort retention calculations.",
+      icon: "database",
+      capstoneTitle: "Customer Retention & Revenue Analytics Lakehouse in SQL",
+      days: [
+        { dayNumber: 7, title: "Day 1: Relational Data Modeling, Keys & Multi-Table Joins", objective: "Understand 1-to-many cardinality, primary/foreign keys, and prevent fan-out in multi-table financial queries." },
+        { dayNumber: 8, title: "Day 2: Analytical Window Functions (ROW_NUMBER, DENSE_RANK, LAG/LEAD)", objective: "Calculate month-over-month revenue growth, period offsets, running totals, and partitioned customer order ranks." },
+        { dayNumber: 9, title: "Day 3: Common Table Expressions (CTEs) & Modular Business Logic", objective: "Structure complex nested reporting queries into readable, clean CTEs with reusable intermediate aggregations." },
+        { dayNumber: 10, title: "Day 4: Customer Cohort Analysis & Retention Matrices in SQL", objective: "Build monthly customer acquisition cohorts and compute Month-1, Month-3, and Month-6 retention rates." },
+        { dayNumber: 11, title: "Day 5: Query Execution Plans, B-Tree Indexing & Performance Optimization", objective: "Profile query bottlenecks, analyze EXPLAIN plans, and apply indexing strategies on high-volume tables." },
+        { dayNumber: 12, title: "Day 6: Advanced SQL Synthesis & Business Mart Capstone", objective: "Integrate all SQL techniques into an end-to-end commercial revenue mart tracking CAC and LTV." },
+      ],
+    },
+    {
+      order: 3,
+      title: "Module 3: Power BI & Tableau: Executive Dashboards & Storytelling",
+      description: "Build automated interactive BI cockpits, Star Schema data models, complex DAX measures, parameters, and persuasive executive visual narratives.",
+      icon: "chart",
+      capstoneTitle: "Enterprise SaaS Executive KPI Cockpit",
+      days: [
+        { dayNumber: 13, title: "Day 1: BI Data Modeling: Star Schemas, Fact & Dimension Relationships", objective: "Model 1-to-many dimensional relationships, handle bi-directional filtering traps, and configure date tables." },
+        { dayNumber: 14, title: "Day 2: Mastering DAX: CALCULATE, Filter Context & Aggregations", objective: "Write custom DAX measures modifying filter context with CALCULATE, ALL, FILTER, and ALLEXCEPT." },
+        { dayNumber: 15, title: "Day 3: Time Intelligence DAX: YTD, MTD, YoY Growth & Rolling Averages", objective: "Implement TOTALYTD, SAMEPERIODLASTYEAR, and 30-day rolling average KPI cards." },
+        { dayNumber: 16, title: "Day 4: Interactive Dashboard UX: Drill-Throughs, Slicers & Tooltips", objective: "Create drill-through detail pages, customized tooltip pages, and synchronized cross-filtering." },
+        { dayNumber: 17, title: "Day 5: Tableau Storytelling, Level of Detail (LOD) & Visual Best Practices", objective: "Build Tableau FIXED / INCLUDE LOD expressions and structure narrative storyboards for executives." },
+        { dayNumber: 18, title: "Day 6: Executive BI Capstone: SaaS Revenue & Sales Cockpit", objective: "Publish an enterprise-ready dashboard with Row-Level Security, scheduled refresh, and automated alert cards." },
+      ],
+    },
+    {
+      order: 4,
+      title: "Module 4: Business Process Modeling, Requirements & Agile / Scrum",
+      description: "Master the core BA skillset: BRD/FRD writing, stakeholder elicitation, BPMN 2.0 workflow diagrams, User Stories, Gherkin acceptance criteria, and Jira / Agile sprint management.",
+      icon: "workflow",
+      capstoneTitle: "Fintech Digital Transformation BRD & Process Optimization",
+      days: [
+        { dayNumber: 19, title: "Day 1: Stakeholder Elicitation & BRD / FRD Requirements Architecture", objective: "Conduct structured stakeholder interviews, separate business vs functional requirements, and write complete BRDs." },
+        { dayNumber: 20, title: "Day 2: Business Process Modeling: BPMN 2.0 & As-Is vs To-Be Workflows", objective: "Diagram standard BPMN 2.0 process flows with swimlanes, gateway decisions, exception handling, and handoffs." },
+        { dayNumber: 21, title: "Day 3: User Stories, Acceptance Criteria (Gherkin/BDD) & Epics", objective: "Write INVEST-compliant user stories with Given-When-Then acceptance criteria and split epics into sprint-sized increments." },
+        { dayNumber: 22, title: "Day 4: Agile Scrum Framework, Sprint Ceremonies & Jira Backlog Grooming", objective: "Manage product backlogs in Jira, estimate story points (Planning Poker), and participate in Sprint Planning & Retrospectives." },
+        { dayNumber: 23, title: "Day 5: Gap Analysis, Root Cause Analysis & Risk Matrix Engineering", objective: "Execute 5-Whys, Ishikawa Fishbone diagrams, and create probability-impact risk registers for IT initiatives." },
+        { dayNumber: 24, title: "Day 6: Digital Transformation BRD & Process Optimization Capstone", objective: "Package a comprehensive BRD with swimlane diagrams, traceability matrix (RTM), and executive sign-off sheet." },
+      ],
+    },
+    {
+      order: 5,
+      title: "Module 5: Product & Commercial Analytics, A/B Testing & Unit Economics",
+      description: "Drive commercial impact through AARRR growth funnels, customer acquisition cost (CAC), lifetime value (LTV), unit economics, pricing elasticity, and statistical A/B test design.",
+      icon: "trending",
+      capstoneTitle: "D2C Growth Strategy, Conversion Funnel & Pricing Optimization",
+      days: [
+        { dayNumber: 25, title: "Day 1: Product Metrics: The AARRR Funnel (Acquisition to Revenue)", objective: "Map out conversion funnels, calculate step drop-off ratios, and identify customer activation bottlenecks." },
+        { dayNumber: 26, title: "Day 2: Unit Economics: CAC, LTV, Gross Margin & Payback Period", objective: "Calculate blended vs paid CAC, cohort-based LTV, and evaluate sustainable LTV:CAC ratios (> 3:1)." },
+        { dayNumber: 27, title: "Day 3: A/B Testing: Hypothesis Testing, Sample Sizing & P-Values", objective: "Formulate null/alternative hypotheses, calculate required sample size, and interpret p-values and confidence intervals." },
+        { dayNumber: 28, title: "Day 4: Pricing Strategies, Elasticity & Monetization Modeling", objective: "Model price elasticity of demand, tier-based packaging, and simulate revenue impact under tiered price shifts." },
+        { dayNumber: 29, title: "Day 5: Customer Segmentation & Recency, Frequency, Monetary (RFM) Analysis", objective: "Segment customer databases into Champions, Loyalists, At Risk, and Hibernating tiers with targeted retention playbooks." },
+        { dayNumber: 30, title: "Day 6: Product Growth & A/B Testing Commercial Capstone", objective: "Build an executive commercial strategy proposal combining funnel analytics, A/B test results, and ROI projections." },
+      ],
+    },
+    {
+      order: 6,
+      title: "Module 6: Business Case Studies & Management Consulting Capstone",
+      description: "Solve real-world corporate strategy case studies using McKinsey Pyramid Principle, SWOT, PESTLE, Market Sizing (TAM/SAM/SOM), Cost-Benefit Analysis, and C-Suite presentations.",
+      icon: "briefcase",
+      capstoneTitle: "Enterprise Consulting Engagement & Executive Pitch Deck",
+      days: [
+        { dayNumber: 31, title: "Day 1: Strategic Problem Solving Frameworks (SWOT, Porter's 5 Forces, BCG Matrix)", objective: "Evaluate market attractiveness, competitive advantages, and portfolio positioning using top-tier consulting frameworks." },
+        { dayNumber: 32, title: "Day 2: Market Sizing & Go-to-Market (GTM) Strategy (TAM, SAM, SOM)", objective: "Estimate Total Addressable Market top-down and bottom-up, and formulate Go-to-Market expansion roadmaps." },
+        { dayNumber: 33, title: "Day 3: Cost-Benefit Analysis (CBA), ROI & Capital Allocation Modeling", objective: "Quantify tangible and intangible benefits, NPV, payback period, and present high-conviction ROI models." },
+        { dayNumber: 34, title: "Day 4: Executive Communication & Pyramid Principle Storyboarding", objective: "Structure executive proposals lead with key recommendations, backed by MECE structured data arguments." },
+        { dayNumber: 35, title: "Day 5: Behavioral & Technical Interview Mastery for Business Analysts", objective: "Master STAR behavioral responses, guesstimate estimation cases, SQL technical grilling, and stakeholder objection handling." },
+        { dayNumber: 36, title: "Day 6: Final Comprehensive Consulting Capstone & Recruiter Portfolio", objective: "Package full portfolio dossier: Excel Financial Model, SQL Data Mart, Power BI Dashboard, BRD, and Executive Presentation." },
+      ],
+    },
+  ];
+
+  for (const modData of remainingModules) {
+    const mod = await prisma.module.create({
+      data: {
+        trackId: track.id,
+        order: modData.order,
+        title: modData.title,
+        description: modData.description,
+        icon: modData.icon,
+      },
+    });
+
+    const wk = await prisma.week.create({
+      data: {
+        moduleId: mod.id,
+        weekNumber: modData.order,
+        title: `Week ${modData.order}: Core Competencies & Case Studies`,
+      },
+    });
+
+    for (const d of modData.days) {
+      const createdDay = await prisma.day.create({
+        data: {
+          weekId: wk.id,
+          dayNumber: d.dayNumber,
+          title: d.title,
+          objective: d.objective,
+          estimatedMins: 240,
+          isUnlocked: modData.order <= 3,
+          isCompleted: false,
+        },
+      });
+
+      await prisma.lesson.create({
+        data: {
+          dayId: createdDay.id,
+          title: `${d.title} - Theory & Frameworks`,
+          content: `# ${d.title}\n\n## Objective\n${d.objective}\n\n## Industry Context\nIn modern Business Analysis and Analytics consulting, executing this workflow deterministically drives corporate value and informs executive decision-making.`,
+          cheatSheet: `// Quick Reference Cheat Sheet\n// Topic: ${d.title}\n// 1. Understand business objective\n// 2. Validate input schemas and metrics\n// 3. Formulate stakeholder recommendation`,
+        },
+      });
+    }
+
+    const proj = await prisma.project.create({
+      data: {
+        moduleId: mod.id,
+        title: modData.capstoneTitle,
+        businessBrief: `Deliver a comprehensive capstone deliverable for ${modData.title}. Evaluated against industry executive standards.`,
+        durationDays: 7,
+      },
+    });
+
+    for (let i = 1; i <= 7; i++) {
+      await prisma.projectMilestone.create({
+        data: {
+          projectId: proj.id,
+          dayNumber: i,
+          title: `Milestone Day ${i}: Sprint Deliverable`,
+          deliverable: `Complete Day ${i} project requirements and push artifacts to portfolio.`,
+          isCompleted: false,
+        },
+      });
+    }
   }
 
   // 7. Seed Initial Backlog & Remedial

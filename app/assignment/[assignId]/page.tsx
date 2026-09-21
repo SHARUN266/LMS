@@ -163,14 +163,14 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
+          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
             <span>Day {dayNum} Graded Evaluation</span>
             <span>•</span>
-            <span className="text-amber-400 font-bold flex items-center gap-1">
+            <span className="text-amber-600 font-bold flex items-center gap-1">
               <Clock className="w-3.5 h-3.5" /> Due in {assignment?.deadlineHours || 24}h
             </span>
           </div>
-          <h1 className="text-2xl font-black text-white tracking-tight mt-1">
+          <h1 className="text-2xl font-black text-foreground tracking-tight mt-1">
             {assignment?.title || "Daily Graded Assignment"}
           </h1>
         </div>
@@ -197,8 +197,8 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
       </div>
 
       {errorMessage && (
-        <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-rose-400" />
+        <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-rose-600" />
           <span>{errorMessage}</span>
         </div>
       )}
@@ -209,8 +209,8 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
         <div className="space-y-4">
           {/* Question Selector if multiple */}
           {questions.length > 1 && (
-            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
-              <span className="text-[10px] uppercase font-bold text-slate-400">Assignment Problems:</span>
+            <div className="p-3 rounded-xl bg-card border border-border space-y-2 shadow-sm">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground">Assignment Problems:</span>
               <div className="flex gap-2">
                 {questions.map((q, idx) => (
                   <button
@@ -218,8 +218,8 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
                     onClick={() => setSelectedQIdx(idx)}
                     className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
                       selectedQIdx === idx
-                        ? "bg-masai-red text-white shadow-glow"
-                        : "bg-slate-950 text-slate-400 hover:text-white"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "bg-muted text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     Question {idx + 1} ({q.weight}%)
@@ -229,61 +229,61 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
             </div>
           )}
 
-          <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl space-y-4 backdrop-blur-md">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-masai-red flex items-center gap-1.5">
+          <div className="p-5 rounded-2xl bg-card border border-border shadow-sm space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-600 flex items-center gap-1.5">
               <ShieldAlert className="w-4 h-4" /> Assignment Objectives
             </h3>
-            <p className="text-xs text-slate-300 leading-relaxed">
+            <p className="text-xs text-slate-700 leading-relaxed">
               {assignment?.description || "Solve the business case using production-standard SQL patterns."}
             </p>
 
             {currentQuestion?.prompt && (
-              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200">
-                <span className="font-bold text-amber-300 block mb-1">
+              <div className="p-3.5 rounded-xl bg-muted/60 border border-border text-xs text-foreground">
+                <span className="font-bold text-indigo-600 block mb-1">
                   Question {selectedQIdx + 1} ({currentQuestion.weight}% Weight):
                 </span>
-                <p className="leading-relaxed whitespace-pre-line">{currentQuestion.prompt}</p>
+                <p className="leading-relaxed whitespace-pre-line text-slate-700">{currentQuestion.prompt}</p>
               </div>
             )}
 
-            <div className="pt-3 border-t border-slate-800">
-              <h4 className="text-[11px] font-bold uppercase text-slate-400 mb-2">Grading Rubric Breakdown:</h4>
-              <div className="space-y-1.5 text-[11px] text-slate-400">
+            <div className="pt-3 border-t border-border">
+              <h4 className="text-[11px] font-bold uppercase text-muted-foreground mb-2">Grading Rubric Breakdown:</h4>
+              <div className="space-y-1.5 text-[11px] text-slate-600">
                 <div className="flex justify-between">
                   <span>Correct Output & Math:</span>
-                  <span className="font-bold text-slate-200">40%</span>
+                  <span className="font-bold text-slate-900">40%</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Query Logic & CTE structure:</span>
-                  <span className="font-bold text-slate-200">20%</span>
+                  <span className="font-bold text-slate-900">20%</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Edge Cases (NULL handling):</span>
-                  <span className="font-bold text-slate-200">15%</span>
+                  <span className="font-bold text-slate-900">15%</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Performance & Indexability:</span>
-                  <span className="font-bold text-slate-200">10%</span>
+                  <span className="font-bold text-slate-900">10%</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Naming & Style:</span>
-                  <span className="font-bold text-slate-200">10%</span>
+                  <span className="font-bold text-slate-900">10%</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Explanation & Notes:</span>
-                  <span className="font-bold text-slate-200">5%</span>
+                  <span className="font-bold text-slate-900">5%</span>
                 </div>
               </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-rose-950/20 border border-masai-red/30 text-[11px] text-rose-300">
-              <span className="font-bold">Masai Standard:</span> Passing score is <strong>70%</strong>. Submissions below 70% automatically trigger remediation drills.
+            <div className="p-3 rounded-xl bg-indigo-50/70 border border-indigo-100 text-[11px] text-indigo-900">
+              <span className="font-bold">Passing Criteria:</span> Benchmark passing score is <strong>70%</strong>. Submissions below 70% automatically schedule adaptive remedial drills.
             </div>
           </div>
 
           {/* Learner Notes Box */}
-          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
-            <label className="text-xs font-bold text-slate-300 block">
+          <div className="p-4 rounded-xl bg-card border border-border shadow-sm space-y-2">
+            <label className="text-xs font-bold text-foreground block">
               Architectural Notes / Explanation (5% Weight)
             </label>
             <textarea
@@ -291,14 +291,14 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Explain your approach, choice of window framing, and how edge cases were addressed..."
-              className="w-full p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-300 focus:outline-none focus:border-masai-red resize-none"
+              className="w-full p-2.5 rounded-lg bg-muted/40 border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
             />
           </div>
 
           {/* Past Submissions History */}
           {submissions.length > 0 && (
-            <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
-              <span className="text-[11px] font-bold uppercase text-slate-400 flex items-center gap-1.5">
+            <div className="p-4 rounded-xl bg-card border border-border shadow-sm space-y-2">
+              <span className="text-[11px] font-bold uppercase text-muted-foreground flex items-center gap-1.5">
                 <History className="w-3.5 h-3.5" /> Prior Attempts ({submissions.length})
               </span>
               <div className="space-y-1.5">
@@ -306,15 +306,15 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
                   <div
                     key={sub.id}
                     onClick={() => router.push(`/evaluation/${sub.id}`)}
-                    className="p-2 rounded-lg bg-slate-950 border border-slate-800 text-xs flex items-center justify-between cursor-pointer hover:border-slate-700"
+                    className="p-2 rounded-lg bg-muted/50 border border-border text-xs flex items-center justify-between cursor-pointer hover:bg-muted transition-colors"
                   >
-                    <span className="text-slate-400">Attempt #{submissions.length - idx}</span>
+                    <span className="text-slate-600">Attempt #{submissions.length - idx}</span>
                     {sub.evaluation ? (
-                      <span className={`font-bold ${sub.evaluation.passed ? "text-emerald-400" : "text-amber-400"}`}>
+                      <span className={`font-bold ${sub.evaluation.passed ? "text-emerald-600" : "text-amber-600"}`}>
                         Score: {sub.evaluation.score}%
                       </span>
                     ) : (
-                      <span className="text-slate-500">Evaluated</span>
+                      <span className="text-muted-foreground">Evaluated</span>
                     )}
                   </div>
                 ))}
@@ -324,15 +324,15 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
         </div>
 
         {/* Right 2 Cols: Monaco Editor */}
-        <div className="lg:col-span-2 flex flex-col rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 shadow-2xl h-[580px]">
-          <div className="h-10 px-4 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-xs font-semibold text-slate-300">
-            <span className="flex items-center gap-1.5 font-mono text-masai-red">
+        <div className="lg:col-span-2 flex flex-col rounded-2xl overflow-hidden border border-border bg-card shadow-sm h-[580px]">
+          <div className="h-10 px-4 bg-muted/60 border-b border-border flex items-center justify-between text-xs font-semibold text-foreground">
+            <span className="flex items-center gap-1.5 font-mono text-indigo-600 font-bold">
               <FileCode className="w-4 h-4" /> solution_{selectedQIdx + 1}.sql (Production Code Submission)
             </span>
-            <span className="text-[11px] text-slate-500 font-mono">Gemini 2.5 Flash Evaluation Engine</span>
+            <span className="text-[11px] text-muted-foreground font-mono">Automated Evaluation Engine</span>
           </div>
 
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 bg-slate-950">
             <Editor
               height="100%"
               defaultLanguage="sql"

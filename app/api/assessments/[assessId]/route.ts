@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { evaluateWithQwen } from "@/lib/ollama";
+import { evaluateAssignmentSubmission } from "@/lib/ai";
 
 export async function GET(
   req: Request,
@@ -115,12 +115,12 @@ export async function POST(
       } else if (q.type === "CODE") {
         if (userAnswer.trim().length > 10) {
           try {
-            // Evaluate code with Qwen or fallback
-            const evalResult = await evaluateWithQwen(
-              userAnswer,
+            const evalResult = await evaluateAssignmentSubmission(
               "Assessment Code Submission",
               q.prompt,
-              "SQL"
+              userAnswer,
+              undefined,
+              "SQL & Analytics"
             );
             const questionScore = Math.round((evalResult.score / 100) * weight);
             earnedPoints += questionScore;

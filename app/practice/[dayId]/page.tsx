@@ -227,33 +227,33 @@ SELECT * FROM orders LIMIT 10;`);
       </div>
 
       {/* Problem statement banner */}
-      <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-slate-300">
-        <span className="font-bold text-masai-accent uppercase tracking-wider text-[11px] block mb-0.5">Problem Statement:</span>
-        <p>{currentExercise.problem}</p>
+      <div className="p-3.5 rounded-xl bg-card border border-border text-xs text-foreground shadow-sm">
+        <span className="font-bold text-indigo-600 uppercase tracking-wider text-[11px] block mb-1">Problem Statement:</span>
+        <p className="text-slate-700 leading-relaxed">{currentExercise.problem}</p>
       </div>
 
       {/* Progressive Hint Box */}
       {hintStep > 0 && parsedHints[hintStep - 1] && (
-        <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 text-xs text-amber-200 flex items-start gap-2 shadow-sm animate-fadeIn">
-          <Sparkles className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+        <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-900 flex items-start gap-2.5 shadow-sm animate-fadeIn">
+          <Sparkles className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
-            <span className="font-bold text-amber-300">AI Socratic Hint {hintStep}: </span>
-            <span>{parsedHints[hintStep - 1]}</span>
+            <span className="font-bold text-amber-700">AI Socratic Hint {hintStep}: </span>
+            <span className="text-amber-800">{parsedHints[hintStep - 1]}</span>
           </div>
         </div>
       )}
 
       {/* Main Split Pane: Left Monaco Editor, Right Table Schema & Output */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 h-[460px]">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 h-[480px]">
         {/* Left: Monaco SQL Editor */}
-        <div className="flex flex-col rounded-xl overflow-hidden border border-slate-800 bg-slate-950 shadow-inner h-full">
-          <div className="h-9 px-4 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-xs font-semibold text-slate-300">
-            <span className="flex items-center gap-1.5 font-mono text-cyan-400">
+        <div className="flex flex-col rounded-xl overflow-hidden border border-border bg-card shadow-sm h-full">
+          <div className="h-9 px-4 bg-muted/60 border-b border-border flex items-center justify-between text-xs font-semibold text-foreground">
+            <span className="flex items-center gap-1.5 font-mono text-indigo-600 font-bold">
               <Database className="w-3.5 h-3.5" /> drill_{selectedExerciseIdx + 1}.sql (Monaco Sandbox)
             </span>
-            <span className="text-[11px] text-slate-500">PostgreSQL / SQLite Sandbox</span>
+            <span className="text-[11px] text-muted-foreground">PostgreSQL / SQLite Sandbox</span>
           </div>
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 bg-slate-950">
             <Editor
               height="100%"
               defaultLanguage="sql"
@@ -274,41 +274,41 @@ SELECT * FROM orders LIMIT 10;`);
         </div>
 
         {/* Right: Results / Output Pane */}
-        <div className="flex flex-col rounded-xl overflow-hidden border border-slate-800 bg-slate-950 shadow-inner">
-          <div className="h-9 px-4 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-xs font-semibold text-slate-300">
-            <span className="flex items-center gap-1.5 font-mono text-emerald-400">
+        <div className="flex flex-col rounded-xl overflow-hidden border border-border bg-card shadow-sm">
+          <div className="h-9 px-4 bg-muted/60 border-b border-border flex items-center justify-between text-xs font-semibold text-foreground">
+            <span className="flex items-center gap-1.5 font-mono text-emerald-600 font-bold">
               <Terminal className="w-3.5 h-3.5" /> Execution Results
             </span>
             {queryResult && (
-              <span className="text-[11px] text-slate-400">
+              <span className="text-[11px] text-muted-foreground">
                 {queryResult.rowCount !== undefined ? `${queryResult.rowCount} rows returned` : ""}
               </span>
             )}
           </div>
 
-          <div className="flex-1 min-h-0 overflow-auto p-4">
+          <div className="flex-1 min-h-0 overflow-auto p-4 bg-white">
             {isRunning ? (
-              <div className="h-full flex flex-col items-center justify-center text-slate-500 text-xs gap-2">
-                <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
+              <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-xs gap-2">
+                <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
                 <span>Executing query on in-memory dataset...</span>
               </div>
             ) : queryResult?.error ? (
-              <div className="p-4 rounded-xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs flex items-start gap-2.5">
-                <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
+              <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold block text-rose-200">Query Execution Error:</span>
-                  <span className="font-mono">{queryResult.error}</span>
+                  <span className="font-bold block text-rose-900">Query Execution Error:</span>
+                  <span className="font-mono text-rose-700">{queryResult.error}</span>
                 </div>
               </div>
             ) : queryResult?.rows && queryResult.rows.length > 0 ? (
               <div className="space-y-3">
-                <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/30 p-2 rounded-lg">
-                  <ShieldCheck className="w-4 h-4" />
+                <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 p-2 rounded-lg">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
                   <span>Query Executed Successfully ({queryResult.rows.length} rows returned)</span>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto rounded-lg border border-border">
                   <table className="w-full text-xs text-left border-collapse">
-                    <thead className="bg-slate-900 text-slate-400 font-bold uppercase text-[10px] border-b border-slate-800">
+                    <thead className="bg-slate-50 text-slate-600 font-bold uppercase text-[10px] border-b border-border">
                       <tr>
                         {queryResult.columns.map((col: string, i: number) => (
                           <th key={i} className="p-2.5 font-mono">
@@ -317,12 +317,12 @@ SELECT * FROM orders LIMIT 10;`);
                         ))}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800 text-slate-300 font-mono text-[11px]">
+                    <tbody className="divide-y divide-slate-100 text-slate-800 font-mono text-[11px]">
                       {queryResult.rows.map((row: any, rIdx: number) => (
-                        <tr key={rIdx} className="hover:bg-slate-900/50">
+                        <tr key={rIdx} className="hover:bg-slate-50/80 transition-colors">
                           {queryResult.columns.map((col: string, cIdx: number) => (
                             <td key={cIdx} className="p-2.5">
-                              {row[col] !== null && row[col] !== undefined ? String(row[col]) : <span className="text-slate-600">NULL</span>}
+                              {row[col] !== null && row[col] !== undefined ? String(row[col]) : <span className="text-slate-400">NULL</span>}
                             </td>
                           ))}
                         </tr>
@@ -332,10 +332,10 @@ SELECT * FROM orders LIMIT 10;`);
                 </div>
               </div>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center text-slate-500 text-xs space-y-2">
-                <Database className="w-8 h-8 text-slate-700" />
-                <p>Click &ldquo;Run Query&rdquo; to execute and see SQL results</p>
-                <p className="text-[11px] text-slate-600">Sample tables available: <code className="text-cyan-400 font-mono">customers</code>, <code className="text-cyan-400 font-mono">orders</code>, <code className="text-cyan-400 font-mono">products</code></p>
+              <div className="h-full flex flex-col items-center justify-center text-slate-400 text-xs space-y-2">
+                <Database className="w-8 h-8 text-slate-300" />
+                <p className="font-medium text-slate-600">Click &ldquo;Run Query&rdquo; to execute and see SQL results</p>
+                <p className="text-[11px] text-slate-400">Sample tables available: <code className="text-indigo-600 font-mono bg-indigo-50 px-1.5 py-0.5 rounded">customers</code>, <code className="text-indigo-600 font-mono bg-indigo-50 px-1.5 py-0.5 rounded">orders</code>, <code className="text-indigo-600 font-mono bg-indigo-50 px-1.5 py-0.5 rounded">products</code></p>
               </div>
             )}
           </div>

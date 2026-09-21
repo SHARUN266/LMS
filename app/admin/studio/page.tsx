@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 export default function AdminStudioPage() {
-  const [model, setModel] = useState("qwen2.5-coder");
+  const [model, setModel] = useState("gemini-2.5-flash");
   const [strictness, setStrictness] = useState(85);
   const [passingThreshold, setPassingThreshold] = useState(70);
   const [saved, setSaved] = useState(false);
@@ -49,8 +49,8 @@ export default function AdminStudioPage() {
     <div className="max-w-4xl mx-auto space-y-6 pb-16">
       {/* Header */}
       <div>
-        <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-          <Settings className="w-4 h-4 text-primary" />
+        <div className="flex items-center gap-2 text-xs font-semibold text-indigo-600 uppercase tracking-wider mb-1">
+          <Settings className="w-4 h-4 text-indigo-600" />
           <span>Praxis System Configuration</span>
         </div>
         <h1 className="text-xl font-bold text-foreground tracking-tight">
@@ -65,27 +65,26 @@ export default function AdminStudioPage() {
         {/* Model Selection */}
         <div>
           <label className="text-xs font-bold uppercase tracking-wider text-foreground block mb-2 flex items-center gap-1.5">
-            <Cpu className="w-4 h-4 text-primary" /> Active Evaluation Model
+            <Cpu className="w-4 h-4 text-indigo-600" /> Active Evaluation Model (Google AI)
           </label>
           <select
             value={model}
             onChange={(e) => setModel(e.target.value)}
-            className="w-full p-2.5 rounded-lg bg-background border border-border text-xs text-foreground focus:outline-none focus:border-primary font-mono"
+            className="w-full p-2.5 rounded-lg bg-background border border-border text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-mono"
           >
-            <option value="gemini-2.5-flash">Gemini 2.5 Flash (Google AI Studio • Active Production Engine)</option>
-            <option value="qwen2.5-coder">qwen2.5-coder (Local Ollama • Fast Coding Performance)</option>
-            <option value="deepseek-r1">deepseek-r1 (Local Ollama • Deep Step-by-Step Reasoning)</option>
-            <option value="llama3.2">llama3.2 (Local Ollama • Socratic Mentor)</option>
+            <option value="gemini-2.5-flash">Gemini 2.5 Flash (Google AI Studio • Recommended High Performance)</option>
+            <option value="gemini-2.0-flash">Gemini 2.0 Flash (Fast Reasoning & Code Analysis)</option>
+            <option value="gemini-1.5-pro">Gemini 1.5 Pro (Deep Multimodal & Long Context)</option>
           </select>
         </div>
 
         {/* Strictness Slider */}
         <div>
           <div className="flex justify-between items-center mb-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-              <Sliders className="w-4 h-4 text-amber-400" /> Evaluation Strictness Rubric
+            <label className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
+              <Sliders className="w-4 h-4 text-amber-600" /> Evaluation Strictness Rubric
             </label>
-            <span className="text-xs font-mono font-bold text-amber-400">{strictness}% Strict</span>
+            <span className="text-xs font-mono font-bold text-amber-600">{strictness}% Strict</span>
           </div>
           <input
             type="range"
@@ -93,9 +92,9 @@ export default function AdminStudioPage() {
             max="100"
             value={strictness}
             onChange={(e) => setStrictness(Number(e.target.value))}
-            className="w-full h-2 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-masai-red"
+            className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
           />
-          <span className="text-[11px] text-slate-500 mt-1 block">
+          <span className="text-[11px] text-muted-foreground mt-1 block">
             Higher strictness penalizes missing NULL handling, sub-optimal CTEs, and poor column aliases.
           </span>
         </div>
@@ -103,10 +102,10 @@ export default function AdminStudioPage() {
         {/* Passing Threshold */}
         <div>
           <div className="flex justify-between items-center mb-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Minimum Passing Threshold
+            <label className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Minimum Passing Threshold
             </label>
-            <span className="text-xs font-mono font-bold text-emerald-400">{passingThreshold}% Required</span>
+            <span className="text-xs font-mono font-bold text-emerald-600">{passingThreshold}% Required</span>
           </div>
           <input
             type="range"
@@ -114,29 +113,29 @@ export default function AdminStudioPage() {
             max="90"
             value={passingThreshold}
             onChange={(e) => setPassingThreshold(Number(e.target.value))}
-            className="w-full h-2 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+            className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-emerald-600"
           />
-          <span className="text-[11px] text-slate-500 mt-1 block">
+          <span className="text-[11px] text-muted-foreground mt-1 block">
             Submissions scoring below this threshold trigger mandatory Remedial Practice before unlocking the next day.
           </span>
         </div>
 
         {/* Save Button */}
-        <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
-          <span className="text-xs text-slate-500">Settings persisted locally</span>
+        <div className="pt-4 border-t border-border flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">Settings persisted locally</span>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-masai-red to-rose-600 hover:from-rose-600 hover:to-masai-red text-white text-xs font-black shadow-glow transition-all flex items-center gap-2 disabled:opacity-50"
+            className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold shadow-sm transition-all flex items-center gap-2 disabled:opacity-50"
           >
             {saving ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                <Loader2 className="w-4 h-4 animate-spin text-primary-foreground" />
                 <span>Saving...</span>
               </>
             ) : saved ? (
               <>
-                <CheckCircle2 className="w-4 h-4 text-white" />
+                <CheckCircle2 className="w-4 h-4 text-primary-foreground" />
                 <span>Settings Saved!</span>
               </>
             ) : (

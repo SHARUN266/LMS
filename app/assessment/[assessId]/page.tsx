@@ -163,23 +163,16 @@ export default function AssessmentHallPage({ params }: { params: { assessId: str
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-96 space-y-3">
-        <Loader2 className="w-8 h-8 animate-spin text-masai-red" />
-        <p className="text-xs text-slate-400 font-medium">Entering Monday Exam Hall & initializing proctored session...</p>
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+        <p className="text-xs text-muted-foreground font-medium">Entering Proctored Exam Hall...</p>
       </div>
     );
   }
 
   const allQuestions = assessment?.questions || [];
-  const filteredQuestions = allQuestions.filter((q) => {
-    if (filterType === "MCQ") return q.type === "MCQ";
-    if (filterType === "CODE") return q.type === "CODE";
-    return true;
-  });
-
   const currentQuestion = allQuestions[activeQIdx] || allQuestions[0];
   const isCurrentAnswered = Boolean(answers[currentQuestion?.id]?.trim());
 
-  // Parse MCQ options if current is MCQ
   let currentOptions: string[] = [];
   if (currentQuestion?.type === "MCQ" && currentQuestion.options) {
     try {
@@ -193,22 +186,22 @@ export default function AssessmentHallPage({ params }: { params: { assessId: str
     <div className="max-w-7xl mx-auto space-y-4 pb-16">
       {/* Top Header with Live Proctored Timer */}
       <div
-        className={`p-5 rounded-2xl bg-gradient-to-r ${
-          isUrgent ? "from-rose-950 via-slate-900 to-rose-950 border-rose-500 animate-pulse" : "from-slate-900 via-slate-800 to-slate-900 border-slate-700"
-        } border shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4`}
+        className={`p-5 rounded-2xl bg-card border ${
+          isUrgent ? "border-rose-300 ring-2 ring-rose-100" : "border-border"
+        } shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4`}
       >
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/40">
+          <div className="p-3 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
             <CalendarCheck className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40">
-                Proctored Monday Exam Hall
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-indigo-50 text-indigo-600 border border-indigo-200">
+                Proctored Exam Hall
               </span>
-              <span className="text-xs text-slate-400">{assessment?.week?.title || "Week 1 Assessment"}</span>
+              <span className="text-xs text-muted-foreground">{assessment?.week?.title || "Week 1 Assessment"}</span>
             </div>
-            <h1 className="text-lg font-black text-white tracking-tight mt-0.5">
+            <h1 className="text-lg font-black text-foreground tracking-tight mt-0.5">
               {assessment?.title || "SQL Mastery & Analytical Querying Comprehensive Exam"}
             </h1>
           </div>
@@ -216,18 +209,20 @@ export default function AssessmentHallPage({ params }: { params: { assessId: str
 
         <div className="flex items-center gap-4 flex-wrap">
           {autoSavedTime && (
-            <span className="text-[10px] text-slate-400 flex items-center gap-1">
-              <Save className="w-3 h-3 text-emerald-400" /> Auto-saved {autoSavedTime}
+            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+              <Save className="w-3 h-3 text-emerald-600" /> Auto-saved {autoSavedTime}
             </span>
           )}
 
           {/* Countdown Clock */}
           <div
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-950 border font-mono text-sm font-bold ${
-              isUrgent ? "border-rose-500 text-rose-400 shadow-glow" : "border-slate-800 text-cyan-300"
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl border font-mono text-sm font-bold ${
+              isUrgent
+                ? "bg-rose-50 border-rose-200 text-rose-700"
+                : "bg-muted/40 border-border text-foreground"
             }`}
           >
-            <Clock className={`w-4 h-4 ${isUrgent ? "animate-spin text-rose-400" : ""}`} />
+            <Clock className={`w-4 h-4 ${isUrgent ? "animate-spin text-rose-600" : "text-indigo-600"}`} />
             <span>
               {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
             </span>
@@ -236,7 +231,7 @@ export default function AssessmentHallPage({ params }: { params: { assessId: str
           <button
             onClick={handleFinishExam}
             disabled={isSubmitting}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-masai-red to-rose-600 hover:from-rose-600 hover:to-masai-red text-white text-xs font-black shadow-glow transition-all disabled:opacity-50"
+            className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold shadow-sm transition-all disabled:opacity-50"
           >
             {isSubmitting ? (
               <span className="flex items-center gap-2">
@@ -253,35 +248,35 @@ export default function AssessmentHallPage({ params }: { params: { assessId: str
       {/* Main Layout: Left Question Navigator (1 Col) & Right Active Question (3 Cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         {/* Left Column: Question Grid Navigator */}
-        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+        <div className="p-4 rounded-2xl bg-card border border-border shadow-sm space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-border">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Questions ({answeredCount}/{allQuestions.length})
             </span>
-            <span className="text-[10px] text-emerald-400 font-bold">
-              {Math.round((answeredCount / allQuestions.length) * 100)}% Answered
+            <span className="text-[10px] text-emerald-600 font-bold">
+              {Math.round((answeredCount / (allQuestions.length || 1)) * 100)}% Answered
             </span>
           </div>
 
           {/* Filter Tabs */}
-          <div className="grid grid-cols-3 gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-[11px] font-bold text-center">
+          <div className="grid grid-cols-3 gap-1 bg-muted/40 p-1 rounded-lg border border-border text-[11px] font-bold text-center">
             <button
               onClick={() => setFilterType("ALL")}
-              className={`py-1 rounded ${filterType === "ALL" ? "bg-slate-800 text-white" : "text-slate-400"}`}
+              className={`py-1 rounded transition-colors ${filterType === "ALL" ? "bg-white text-foreground shadow-xs font-bold" : "text-muted-foreground"}`}
             >
-              All (15)
+              All
             </button>
             <button
               onClick={() => setFilterType("MCQ")}
-              className={`py-1 rounded ${filterType === "MCQ" ? "bg-slate-800 text-white" : "text-slate-400"}`}
+              className={`py-1 rounded transition-colors ${filterType === "MCQ" ? "bg-white text-foreground shadow-xs font-bold" : "text-muted-foreground"}`}
             >
-              MCQ (10)
+              MCQ
             </button>
             <button
               onClick={() => setFilterType("CODE")}
-              className={`py-1 rounded ${filterType === "CODE" ? "bg-slate-800 text-white" : "text-slate-400"}`}
+              className={`py-1 rounded transition-colors ${filterType === "CODE" ? "bg-white text-foreground shadow-xs font-bold" : "text-muted-foreground"}`}
             >
-              SQL (5)
+              SQL
             </button>
           </div>
 
@@ -303,53 +298,53 @@ export default function AssessmentHallPage({ params }: { params: { assessId: str
                   onClick={() => setActiveQIdx(idx)}
                   className={`h-9 rounded-lg font-bold text-xs transition-all relative flex items-center justify-center ${
                     isCurrent
-                      ? "bg-masai-red text-white shadow-glow border border-masai-red"
+                      ? "bg-primary text-primary-foreground shadow-xs border border-primary font-black"
                       : isAnswered
-                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                      : "bg-slate-950 text-slate-400 border border-slate-800 hover:bg-slate-800"
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                      : "bg-muted/30 text-muted-foreground border border-border hover:bg-muted/60"
                   }`}
                 >
                   <span>{q.order}</span>
                   {q.type === "CODE" && (
-                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-cyan-400" />
+                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-indigo-500" />
                   )}
                 </button>
               );
             })}
           </div>
 
-          <div className="pt-2 text-[10px] text-slate-500 space-y-1">
+          <div className="pt-2 text-[10px] text-muted-foreground space-y-1.5 border-t border-border">
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
               <span>Answered Question</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-masai-red" />
+              <span className="w-2 h-2 rounded-full bg-indigo-600" />
               <span>Current Question</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-cyan-400" />
-              <span>Coding Question (Monaco)</span>
+              <span className="w-2 h-2 rounded-full bg-indigo-500" />
+              <span>Coding Question (SQL)</span>
             </div>
           </div>
         </div>
 
         {/* Right 3 Columns: Active Question Card */}
-        <div className="lg:col-span-3 p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl space-y-5 flex flex-col justify-between min-h-[580px]">
+        <div className="lg:col-span-3 p-6 rounded-2xl bg-card border border-border shadow-sm space-y-5 flex flex-col justify-between min-h-[580px]">
           <div className="space-y-4">
             {/* Top Question Meta */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
               <div className="flex items-center gap-2">
                 <span
                   className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
                     currentQuestion.type === "CODE"
-                      ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/40"
-                      : "bg-amber-500/20 text-amber-400 border border-amber-500/40"
+                      ? "bg-indigo-50 text-indigo-600 border border-indigo-200"
+                      : "bg-amber-50 text-amber-700 border border-amber-200"
                   }`}
                 >
                   {currentQuestion.type === "CODE" ? "Practical SQL Code" : "Conceptual MCQ"}
                 </span>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-muted-foreground">
                   Question {currentQuestion.order} of {allQuestions.length} ({currentQuestion.weight}% Weight)
                 </span>
               </div>
@@ -358,14 +353,14 @@ export default function AssessmentHallPage({ params }: { params: { assessId: str
                 <button
                   onClick={() => setActiveQIdx((prev) => Math.max(0, prev - 1))}
                   disabled={activeQIdx === 0}
-                  className="p-1.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-400 hover:text-white disabled:opacity-30"
+                  className="p-1.5 rounded-lg bg-card border border-border text-muted-foreground hover:text-foreground disabled:opacity-30"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setActiveQIdx((prev) => Math.min(allQuestions.length - 1, prev + 1))}
                   disabled={activeQIdx === allQuestions.length - 1}
-                  className="p-1.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-400 hover:text-white disabled:opacity-30"
+                  className="p-1.5 rounded-lg bg-card border border-border text-muted-foreground hover:text-foreground disabled:opacity-30"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -373,7 +368,7 @@ export default function AssessmentHallPage({ params }: { params: { assessId: str
             </div>
 
             {/* Prompt */}
-            <h2 className="text-sm font-bold text-slate-100 leading-relaxed whitespace-pre-line">
+            <h2 className="text-sm font-bold text-foreground leading-relaxed whitespace-pre-line">
               {currentQuestion.prompt}
             </h2>
 
@@ -388,14 +383,14 @@ export default function AssessmentHallPage({ params }: { params: { assessId: str
                       onClick={() => setAnswers((prev) => ({ ...prev, [currentQuestion.id]: optText }))}
                       className={`w-full text-left p-3.5 rounded-xl text-xs font-semibold border transition-all ${
                         isSelected
-                          ? "bg-rose-500/20 border-rose-500 text-rose-200 shadow-glow"
-                          : "bg-slate-950 border-slate-800 text-slate-300 hover:bg-slate-800/80"
+                          ? "bg-indigo-50/80 border-indigo-600 text-foreground ring-1 ring-indigo-600 shadow-xs"
+                          : "bg-muted/20 border-border text-slate-700 hover:bg-muted/50"
                       }`}
                     >
                       <div className="flex items-center gap-3">
                         <span
                           className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-mono font-bold ${
-                            isSelected ? "bg-rose-500 text-white" : "bg-slate-800 text-slate-400"
+                            isSelected ? "bg-indigo-600 text-white" : "bg-muted text-muted-foreground"
                           }`}
                         >
                           {String.fromCharCode(65 + optIdx)}
@@ -411,13 +406,13 @@ export default function AssessmentHallPage({ params }: { params: { assessId: str
             {/* CODE Monaco Editor Rendering */}
             {currentQuestion.type === "CODE" && (
               <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs text-slate-400">
-                  <span className="flex items-center gap-1 font-mono text-cyan-400">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1 font-mono text-indigo-600 font-bold">
                     <FileCode className="w-3.5 h-3.5" /> solution_{currentQuestion.order}.sql
                   </span>
                   <span>PostgreSQL / SQLite Sandbox</span>
                 </div>
-                <div className="h-80 rounded-xl overflow-hidden border border-slate-800 bg-slate-950">
+                <div className="h-80 rounded-xl overflow-hidden border border-border bg-slate-950">
                   <Editor
                     height="100%"
                     defaultLanguage="sql"
@@ -440,13 +435,13 @@ export default function AssessmentHallPage({ params }: { params: { assessId: str
           </div>
 
           {/* Bottom Navigation */}
-          <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
-            <span className="text-xs text-slate-400">
+          <div className="pt-4 border-t border-border flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">
               Status:{" "}
               {isCurrentAnswered ? (
-                <span className="text-emerald-400 font-bold">Answered ✓</span>
+                <span className="text-emerald-600 font-bold">Answered ✓</span>
               ) : (
-                <span className="text-slate-500">Unanswered</span>
+                <span className="text-muted-foreground">Unanswered</span>
               )}
             </span>
 
@@ -454,7 +449,7 @@ export default function AssessmentHallPage({ params }: { params: { assessId: str
               <button
                 onClick={() => setActiveQIdx((prev) => Math.max(0, prev - 1))}
                 disabled={activeQIdx === 0}
-                className="px-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs font-bold text-slate-300 hover:text-white disabled:opacity-30"
+                className="px-4 py-2 rounded-xl bg-card border border-border text-xs font-bold text-muted-foreground hover:text-foreground disabled:opacity-30"
               >
                 Previous
               </button>
@@ -462,14 +457,14 @@ export default function AssessmentHallPage({ params }: { params: { assessId: str
               {activeQIdx < allQuestions.length - 1 ? (
                 <button
                   onClick={() => setActiveQIdx((prev) => prev + 1)}
-                  className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white transition-colors"
+                  className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold transition-colors"
                 >
                   Next Question →
                 </button>
               ) : (
                 <button
                   onClick={handleFinishExam}
-                  className="px-6 py-2 rounded-xl bg-gradient-to-r from-masai-red to-rose-600 hover:from-rose-600 hover:to-masai-red text-xs font-black text-white shadow-glow transition-all"
+                  className="px-6 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold shadow-sm transition-all"
                 >
                   Finish & Submit Exam
                 </button>

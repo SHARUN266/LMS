@@ -14,9 +14,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className="overflow-hidden">
-        <TooltipProvider delay={300}>
+    <html lang="en">
+      <body className="overflow-hidden bg-[#f8fafc] text-slate-900">
+        <TooltipProvider delay={200}>
           <AppShell>{children}</AppShell>
         </TooltipProvider>
       </body>

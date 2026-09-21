@@ -104,18 +104,18 @@ export function StudyTimer() {
 
       {/* Expanded tooltip with goal info */}
       {expanded && (
-        <div className="absolute top-full right-0 mt-2 px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 shadow-lg text-[11px] text-slate-400 whitespace-nowrap z-50">
+        <div className="absolute top-full right-0 mt-2 px-3 py-2 rounded-lg bg-card border border-border shadow-md text-[11px] text-muted-foreground whitespace-nowrap z-50">
           <div className="flex items-center justify-between gap-4">
             <span>Daily Goal</span>
-            <span className="text-slate-200 font-semibold">{dailyGoalHours}h</span>
+            <span className="text-foreground font-semibold">{dailyGoalHours}h</span>
           </div>
           <div className="flex items-center justify-between gap-4 mt-1">
             <span>Progress</span>
-            <span className="text-emerald-400 font-semibold">
+            <span className="text-emerald-600 font-semibold">
               {Math.min(100, Math.round((studySeconds / (dailyGoalHours * 3600)) * 100))}%
             </span>
           </div>
-          <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden mt-1.5">
+          <div className="w-full bg-slate-100 h-1 rounded-full overflow-hidden mt-1.5">
             <div
               className="bg-emerald-500 h-full transition-all duration-300"
               style={{ width: `${Math.min(100, Math.round((studySeconds / (dailyGoalHours * 3600)) * 100))}%` }}
