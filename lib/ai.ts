@@ -39,32 +39,48 @@ export interface AIProviderStatus {
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
+import { db } from "@/lib/db";
+
 // -------------------------------------------------------------
 // 1. Health & Connection Checks
 // -------------------------------------------------------------
 export async function getAIStatus(): Promise<AIProviderStatus> {
   const hasGemini = Boolean(GEMINI_API_KEY && GEMINI_API_KEY.trim().length > 10);
+  let activeModel = GEMINI_MODEL;
+  try {
+    const config = await db.adminConfig.findFirst();
+    if (config?.activeModel) activeModel = config.activeModel;
+  } catch {}
 
   return {
     activeProvider: hasGemini ? "gemini" : "deterministic",
     geminiConfigured: hasGemini,
-    model: hasGemini ? GEMINI_MODEL : "Rule-Based Engine",
+    model: hasGemini ? activeModel : "Rule-Based Engine",
   };
 }
 
 // -------------------------------------------------------------
 // 2. Google Gemini Core Caller
 // -------------------------------------------------------------
-async function callGemini(
+export async function callGemini(
   prompt: string,
   systemInstruction?: string,
-  responseFormatJson: boolean = false
+  responseFormatJson: boolean = false,
+  customModel?: string
 ): Promise<string> {
   if (!GEMINI_API_KEY) {
     throw new Error("GEMINI_API_KEY is not configured");
   }
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+  let modelToUse = customModel || GEMINI_MODEL;
+  if (!customModel) {
+    try {
+      const config = await db.adminConfig.findFirst();
+      if (config?.activeModel) modelToUse = config.activeModel;
+    } catch {}
+  }
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent?key=${GEMINI_API_KEY}`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 25000);
 
@@ -137,12 +153,17 @@ Evaluate with high rigor across 6 rubric dimensions (Total 100%):
 5. Readability & Casing/Formatting Conventions (10% Weight)
 6. Architecture Notes & Business Explanation (5% Weight)
 
-Benchmark passing standard is 70%.
+CRITICAL RIGOR RULES:
+- You are evaluating candidates for a ₹12,00,000+ PA (12 LPA) Senior Analytics Engineering / Business Analyst role.
+- If the code is just placeholder starter code, a trivial query (e.g. SELECT 1), empty, or fails to implement the required table joins/aggregations/metrics requested in the prompt, award a score of 0 - 25% and set passed = false.
+- Do NOT award sympathy points for incomplete attempts or merely having keywords without actual logic.
+- Benchmark passing standard is strictly 70%.
+
 Output strictly in valid JSON matching this schema:
 {
   "score": <number 0-100>,
   "passed": <boolean>,
-  "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
+  "strengths": ["<strength 1>", "<strength 2>"],
   "weakAreas": ["<weakness 1>", "<weakness 2>"],
   "rubricScores": {
     "correctness": <number 0-40>,
@@ -190,65 +211,75 @@ ${submittedCode}
 }
 
 function deterministicCodeEvaluation(submittedCode: string, category: string): EvaluationResult {
-  const codeLength = submittedCode.trim().length;
-  const hasWindowFunc = /OVER\s*\(/i.test(submittedCode);
-  const hasJoin = /JOIN/i.test(submittedCode);
-  const hasWhere = /WHERE/i.test(submittedCode);
-  const hasGroupBy = /GROUP\s+BY/i.test(submittedCode);
+  const clean = submittedCode.trim();
+  const norm = clean.toLowerCase();
+  const hasFrom = /\bfrom\b/.test(norm);
 
-  const baseScore = Math.min(
-    92,
-    Math.max(
-      48,
-      (hasWhere ? 20 : 0) +
-      (hasJoin ? 25 : 0) +
-      (hasGroupBy ? 20 : 0) +
-      (hasWindowFunc ? 20 : 0) +
-      (codeLength > 50 ? 10 : 0)
-    )
-  );
+  if (clean.length < 25 || !hasFrom) {
+    return {
+      score: 0,
+      passed: false,
+      strengths: [],
+      weakAreas: [
+        "Code does not query any database tables",
+        "Did not implement required analytical SQL logic",
+      ],
+      rubricScores: {
+        correctness: 0,
+        queryLogic: 0,
+        edgeCases: 0,
+        performance: 0,
+        readability: 0,
+        explanation: 0,
+      },
+      codeDiff: "-- Please implement the analytical query required by the problem prompt.",
+      detailedFeedback: "Submission is incomplete or invalid. You must write an analytical query against the database schema to earn a passing score.",
+      remedialTasks: ["Review SQL query structure and syntax from today's lesson"],
+    };
+  }
+
+  const hasWindowFunc = /OVER\s*\(/i.test(clean);
+  const hasJoin = /\bjoin\b/i.test(clean);
+  const hasWhere = /\bwhere\b/i.test(clean);
+  const hasGroupBy = /\bgroup\s+by\b/i.test(clean);
+  const hasCTE = /\bwith\b/i.test(clean);
+
+  let score = 10;
+  if (hasJoin) score += 20;
+  if (hasGroupBy) score += 15;
+  if (hasWhere) score += 10;
+  if (hasWindowFunc) score += 20;
+  if (hasCTE) score += 10;
+
+  score = Math.min(85, score);
+  const passed = score >= 70;
 
   return {
-    score: baseScore,
-    passed: baseScore >= 70,
+    score,
+    passed,
     strengths: [
-      hasJoin ? "Proper relational JOIN structure applied" : "Clean projection syntax",
-      hasWhere ? "Appropriate filtering conditions included" : "Standard query syntax followed",
-      "Follows proper casing conventions for keywords and identifiers",
-    ],
+      hasJoin ? "Proper relational JOIN structure applied" : "Basic projection syntax",
+      hasWhere ? "Appropriate filtering conditions included" : "Standard query syntax",
+      hasGroupBy ? "Appropriate aggregation grouping" : null,
+    ].filter((s): s is string => Boolean(s)),
     weakAreas: [
-      "NULL value handling in conditional aggregates could be improved with COALESCE / NVL",
-      "Consider indexing foreign keys when scaling to high-volume transaction tables",
-      "Could utilize Common Table Expressions (CTEs) for enhanced readability",
-    ],
+      !hasJoin ? "Missing required multi-table joins" : null,
+      !hasWhere ? "Missing filtering predicates for transactions" : null,
+      "Consider defensive NULL handling with COALESCE",
+    ].filter((w): w is string => Boolean(w)),
     rubricScores: {
-      correctness: Math.round(baseScore * 0.38),
-      queryLogic: Math.round(baseScore * 0.2),
-      edgeCases: Math.round(baseScore * 0.14),
-      performance: Math.round(baseScore * 0.1),
-      readability: Math.round(baseScore * 0.1),
-      explanation: Math.round(baseScore * 0.08),
+      correctness: Math.round(score * 0.4),
+      queryLogic: Math.round(score * 0.2),
+      edgeCases: Math.round(score * 0.15),
+      performance: Math.round(score * 0.1),
+      readability: Math.round(score * 0.1),
+      explanation: Math.round(score * 0.05),
     },
-    codeDiff: `-- Optimized Production SQL Solution:
-WITH RankedOrders AS (
-    SELECT 
-        c.id AS customer_id,
-        c.name AS customer_name,
-        o.id AS order_id,
-        o.total_amount,
-        COALESCE(o.total_amount, 0) AS safe_amount,
-        DENSE_RANK() OVER (PARTITION BY c.id ORDER BY o.total_amount DESC) as rank_by_spend
-    FROM customers c
-    LEFT JOIN orders o ON c.id = o.customer_id
-    WHERE o.status = 'COMPLETED' OR o.status IS NULL
-)
-SELECT * FROM RankedOrders WHERE rank_by_spend <= 3;`,
-    detailedFeedback: `Your solution demonstrates solid structural understanding of ${category}. To reach elite enterprise standards, ensure all edge cases involving NULL values and tie-breaks in analytical partitions are explicitly handled using COALESCE and DENSE_RANK.`,
-    remedialTasks: [
-      "SQL NULL Handling & COALESCE Drills",
-      "Window Functions Partitioning & Ranking Exercises",
-    ],
-    provider: "deterministic",
+    codeDiff: clean,
+    detailedFeedback: passed
+      ? "Submission fulfills core analytical requirements."
+      : `Submission scored ${score}%, which is below the 70% passing threshold. Please review the missing criteria and re-submit.`,
+    remedialTasks: passed ? [] : ["Review required joins and filter predicates from curriculum lesson"],
   };
 }
 

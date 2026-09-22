@@ -21,23 +21,40 @@ export default function AdminStudioPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const savedModel = localStorage.getItem("lms_admin_model");
-    const savedStrictness = localStorage.getItem("lms_admin_strictness");
-    const savedThreshold = localStorage.getItem("lms_admin_threshold");
-    if (savedModel) setModel(savedModel);
-    if (savedStrictness) setStrictness(Number(savedStrictness));
-    if (savedThreshold) setPassingThreshold(Number(savedThreshold));
+    async function loadConfig() {
+      try {
+        const res = await fetch("/api/admin/config");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.config) {
+            if (data.config.activeModel) setModel(data.config.activeModel);
+            if (typeof data.config.strictness === "number") setStrictness(data.config.strictness);
+            if (typeof data.config.passingThreshold === "number") setPassingThreshold(data.config.passingThreshold);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load admin config:", err);
+      }
+    }
+    loadConfig();
   }, []);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      localStorage.setItem("lms_admin_model", model);
-      localStorage.setItem("lms_admin_strictness", String(strictness));
-      localStorage.setItem("lms_admin_threshold", String(passingThreshold));
-
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
+      const res = await fetch("/api/admin/config", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          activeModel: model,
+          strictness,
+          passingThreshold,
+        }),
+      });
+      if (res.ok) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2500);
+      }
     } catch (e) {
       console.error("Save error:", e);
     } finally {

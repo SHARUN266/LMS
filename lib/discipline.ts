@@ -60,8 +60,8 @@ export async function calculateStreak(userId: string = "user_default"): Promise<
   } else if (sortedDates.includes(yesterday)) {
     checkDate.setDate(checkDate.getDate() - 1);
   } else {
-    // If neither today nor yesterday has activity, fallback to stored profile streak or 1
-    currentStreak = profile?.currentStreak || 1;
+    // If neither today nor yesterday has activity, fallback to stored profile streak or 0
+    currentStreak = profile?.currentStreak ?? 0;
   }
 
   // Count backwards
@@ -75,7 +75,7 @@ export async function calculateStreak(userId: string = "user_default"): Promise<
     }
   }
 
-  const longestStreak = Math.max(profile?.longestStreak || 1, currentStreak);
+  const longestStreak = Math.max(profile?.longestStreak ?? 0, currentStreak);
 
   // Update profile
   if (profile) {
@@ -108,7 +108,7 @@ export function calculateLevel(xp: number): { level: number; title: string; next
     { level: 5, min: 5000, max: 10000, title: "Staff Analytics Architect" },
   ];
 
-  const current = levels.find((l) => xp >= l.min && xp < l.max) || levels[levels.length - 1];
+  const current = levels.find((l) => xp >= l.min && xp < l.max) || levels[0];
   const range = current.max - current.min;
   const earnedInRange = xp - current.min;
   const progressPct = Math.min(100, Math.round((earnedInRange / range) * 100));
@@ -128,11 +128,11 @@ export async function getDisciplineSummary(userId: string = "user_default"): Pro
   const profile = (await db.userProfile.findFirst({ where: { id: userId } })) || {
     id: userId,
     dailyStudyGoal: 6,
-    currentStreak: 12,
-    longestStreak: 15,
-    totalStudyMins: 2840,
-    xp: 1450,
-    level: 3,
+    currentStreak: 0,
+    longestStreak: 0,
+    totalStudyMins: 0,
+    xp: 0,
+    level: 1,
   };
 
   const todayStr = new Date().toISOString().slice(0, 10);

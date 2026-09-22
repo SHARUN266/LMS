@@ -16,11 +16,11 @@ interface PersonalStatsCardProps {
 }
 
 export function PersonalStatsCard({
-  xp = 1450,
-  level = 3,
-  currentStreak = 12,
-  longestStreak = 15,
-  totalStudyMins = 2840,
+  xp = 0,
+  level = 1,
+  currentStreak = 0,
+  longestStreak = 0,
+  totalStudyMins = 0,
   targetRole = "Business Analyst",
 }: PersonalStatsCardProps) {
   const hours = Math.floor(totalStudyMins / 60);

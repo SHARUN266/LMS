@@ -14,8 +14,8 @@ interface StudyGoalCardProps {
 
 export function StudyGoalCard({
   goalHours = 6,
-  completedMins = 255, // 4h 15m
-  currentStreak = 12,
+  completedMins = 0,
+  currentStreak = 0,
 }: StudyGoalCardProps) {
   const goalMins = goalHours * 60;
   const percentage = Math.min(100, Math.round((completedMins / goalMins) * 100));

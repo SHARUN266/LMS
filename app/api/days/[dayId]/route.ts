@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { generateAdaptiveAssignmentForNextDay } from "@/lib/adaptive";
 
 export async function GET(
   req: Request,
@@ -118,8 +119,8 @@ export async function PATCH(
 ) {
   try {
     const { dayId } = params;
-    const body = await req.json();
-    const { isCompleted, score } = body;
+    const body = await req.json().catch(() => ({}));
+    const { isCompleted, score, theoryCompleted, practiceCompleted } = body;
 
     // Find target day
     let day = await db.day.findUnique({
@@ -143,14 +144,15 @@ export async function PATCH(
       data: {
         ...(isCompleted !== undefined ? { isCompleted } : {}),
         ...(score !== undefined ? { score } : {}),
+        ...(theoryCompleted !== undefined ? { theoryCompleted } : {}),
+        ...(practiceCompleted !== undefined ? { practiceCompleted } : {}),
       },
     });
 
-    // If day was marked completed, unlock the next day in the same week
+    // If day was marked completed, unlock the next day across the curriculum
     if (isCompleted) {
       const nextDay = await db.day.findFirst({
         where: {
-          weekId: day.weekId,
           dayNumber: day.dayNumber + 1,
         },
       });
@@ -160,6 +162,23 @@ export async function PATCH(
           where: { id: nextDay.id },
           data: { isUnlocked: true },
         });
+
+        // Trigger AI Adaptive Assignment Generation for Next Day based on today's performance
+        try {
+          const latestEval = await db.evaluation.findFirst({
+            orderBy: { createdAt: "desc" },
+            include: { submission: true },
+          });
+          const weakAreas = latestEval?.weakAreas ? JSON.parse(latestEval.weakAreas) : [];
+          await generateAdaptiveAssignmentForNextDay(
+            nextDay.id,
+            score ?? latestEval?.score ?? 80,
+            Array.isArray(weakAreas) ? weakAreas : [],
+            60
+          );
+        } catch (adaptErr) {
+          console.warn("Adaptive generation trigger note:", adaptErr);
+        }
       }
 
       // Award XP to user profile

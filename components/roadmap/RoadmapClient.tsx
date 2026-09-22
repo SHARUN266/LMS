@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   CheckCircle2,
   Lock,
@@ -26,13 +27,18 @@ import {
   BookOpen,
   Check,
   ChevronDown,
+  Network,
+  FileText,
+  Brain,
+  ShieldCheck,
+  Users,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
-interface DayItem {
+export interface DayItem {
   id: string;
   dayNumber: number;
   title: string;
@@ -44,7 +50,7 @@ interface DayItem {
   practiceCount?: number;
 }
 
-interface ModuleItem {
+export interface ModuleItem {
   num: number;
   id: string;
   title: string;
@@ -52,6 +58,7 @@ interface ModuleItem {
   duration: string;
   status: "COMPLETED" | "IN_PROGRESS" | "UNLOCKED" | "LOCKED";
   iconName: string;
+  bgImage: string;
   desc: string;
   keySkills: string[];
   capstoneTitle: string;
@@ -60,9 +67,16 @@ interface ModuleItem {
   days: DayItem[];
 }
 
-interface RoadmapClientProps {
+export interface RoadmapClientProps {
   initialTrackTitle?: string;
   initialRole?: string;
+  initialModules?: ModuleItem[];
+  userProgress?: {
+    xp: number;
+    level: number;
+    activeDayNumber: number;
+    activeDayId?: string;
+  };
 }
 
 export const BUSINESS_ANALYST_MODULES: ModuleItem[] = [
@@ -74,6 +88,7 @@ export const BUSINESS_ANALYST_MODULES: ModuleItem[] = [
     duration: "20 Days",
     status: "IN_PROGRESS",
     iconName: "excel",
+    bgImage: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=600&q=80",
     desc: "Master lookup algorithms (XLOOKUP, INDEX/MATCH), dynamic array formulas, nested logic, Pivot Tables, Scenario Modeling, and financial forecasting.",
     keySkills: ["XLOOKUP & Nested Logic", "Pivot Tables & Slicers", "What-If Analysis & Goal Seek", "DCF & Cash Flow Modeling", "Power Query ETL"],
     capstoneTitle: "E-Commerce Financial & Unit Economics Forecasting Model",
@@ -156,6 +171,7 @@ export const BUSINESS_ANALYST_MODULES: ModuleItem[] = [
     duration: "20 Days",
     status: "UNLOCKED",
     iconName: "database",
+    bgImage: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=600&q=80",
     desc: "Extract business insights using complex relational multi-table joins, subqueries, CTEs, analytical window functions, and cohort retention calculations.",
     keySkills: ["Multi-Table Joins (INNER, LEFT, OUTER)", "Aggregate KPI Functions", "Window Functions (ROW_NUMBER, RANK, LAG/LEAD)", "CTEs & Recursive Pipelines", "Cohort Retention Modeling"],
     capstoneTitle: "Customer Retention & Revenue Analytics Lakehouse in SQL",
@@ -238,6 +254,7 @@ export const BUSINESS_ANALYST_MODULES: ModuleItem[] = [
     duration: "20 Days",
     status: "UNLOCKED",
     iconName: "chart",
+    bgImage: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&q=80",
     desc: "Build automated interactive BI cockpits, Star Schema data models, complex DAX measures, parameters, and persuasive executive visual narratives.",
     keySkills: ["Star Schema Dimensional Modeling", "DAX (CALCULATE, Time Intelligence, Filters)", "Interactive Drill-Throughs & Bookmarks", "Tableau Visual Storyboarding", "Row-Level Security (RLS)"],
     capstoneTitle: "Enterprise SaaS Executive KPI Cockpit",
@@ -320,6 +337,7 @@ export const BUSINESS_ANALYST_MODULES: ModuleItem[] = [
     duration: "18 Days",
     status: "LOCKED",
     iconName: "workflow",
+    bgImage: "https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=600&q=80",
     desc: "Master the core BA skillset: BRD/FRD writing, stakeholder elicitation, BPMN 2.0 workflow diagrams, User Stories, Gherkin acceptance criteria, and Jira / Agile sprint management.",
     keySkills: ["BRD & FRD Authoring", "BPMN 2.0 Process Mapping", "User Stories & Gherkin (BDD)", "Agile Scrum / Jira Sprints", "Gap & Root Cause Analysis (5 Whys, Fishbone)"],
     capstoneTitle: "Fintech Digital Transformation BRD & Process Optimization",
@@ -402,6 +420,7 @@ export const BUSINESS_ANALYST_MODULES: ModuleItem[] = [
     duration: "18 Days",
     status: "LOCKED",
     iconName: "trending",
+    bgImage: "https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=600&q=80",
     desc: "Drive commercial impact through AARRR growth funnels, customer acquisition cost (CAC), lifetime value (LTV), unit economics, pricing elasticity, and statistical A/B test design.",
     keySkills: ["AARRR Pirate Metrics Funnel", "CAC, LTV & Payback Economics", "A/B Testing & Statistical Significance", "RFM Customer Segmentation", "Pricing Strategy & Elasticity"],
     capstoneTitle: "D2C Growth Strategy, Conversion Funnel & Pricing Optimization",
@@ -484,6 +503,7 @@ export const BUSINESS_ANALYST_MODULES: ModuleItem[] = [
     duration: "20 Days",
     status: "LOCKED",
     iconName: "briefcase",
+    bgImage: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80",
     desc: "Solve real-world corporate strategy case studies using McKinsey Pyramid Principle, SWOT, PESTLE, Market Sizing (TAM/SAM/SOM), Cost-Benefit Analysis, and C-Suite presentations.",
     keySkills: ["Strategic Frameworks (SWOT, 5 Forces, BCG)", "Market Sizing (TAM, SAM, SOM)", "Cost-Benefit & ROI Analysis", "McKinsey Pyramid Storytelling", "Executive Stakeholder Interviews"],
     capstoneTitle: "Enterprise Consulting Engagement & Executive Pitch Deck",
@@ -566,11 +586,27 @@ function getModuleIcon(name: string) {
       return FileSpreadsheet;
     case "database":
       return Database;
+    case "code":
+      return Code;
+    case "network":
+      return Network;
     case "chart":
+    case "line-chart":
       return LineChart;
+    case "file-text":
+      return FileText;
+    case "sparkles":
+      return Sparkles;
+    case "brain":
+      return Brain;
+    case "shield-check":
+      return ShieldCheck;
+    case "users":
+      return Users;
     case "workflow":
       return Workflow;
     case "trending":
+    case "trending-up":
       return TrendingUp;
     case "briefcase":
     default:
@@ -578,11 +614,25 @@ function getModuleIcon(name: string) {
   }
 }
 
-export function RoadmapClient({ initialTrackTitle, initialRole }: RoadmapClientProps) {
-  const [selectedModuleNum, setSelectedModuleNum] = useState<number>(1);
+export function RoadmapClient({
+  initialTrackTitle,
+  initialRole,
+  initialModules,
+  userProgress,
+}: RoadmapClientProps) {
+  const modulesList = initialModules && initialModules.length > 0 ? initialModules : BUSINESS_ANALYST_MODULES;
+  const [selectedModuleNum, setSelectedModuleNum] = useState<number>(() => {
+    if (userProgress?.activeDayNumber) {
+      const activeMod = modulesList.find((m) =>
+        m.days.some((d) => d.dayNumber === userProgress.activeDayNumber)
+      );
+      if (activeMod) return activeMod.num;
+    }
+    return 1;
+  });
   const [expandedAll, setExpandedAll] = useState<boolean>(false);
 
-  const activeModule = BUSINESS_ANALYST_MODULES.find((m) => m.num === selectedModuleNum) || BUSINESS_ANALYST_MODULES[0];
+  const activeModule = modulesList.find((m) => m.num === selectedModuleNum) || modulesList[0];
   const ModuleIcon = getModuleIcon(activeModule.iconName);
 
   const completedDaysCount = activeModule.days.filter((d) => d.isCompleted).length;
@@ -600,7 +650,7 @@ export function RoadmapClient({ initialTrackTitle, initialRole }: RoadmapClientP
             <span className="text-xs text-muted-foreground">• 120 Days • 6 Comprehensive Modules</span>
           </div>
           <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
-            Business Analyst (BA) Career Path
+            {initialTrackTitle || "Business Analyst (BA) Career Path"}
           </h1>
           <p className="text-xs text-muted-foreground mt-1 max-w-2xl leading-relaxed">
             Complete end-to-end curriculum mastering Excel Financial Modeling, SQL Analytics, Power BI Dashboards, BPMN & BRD Requirements Engineering, Product Analytics, and Consulting Case Studies.
@@ -621,7 +671,7 @@ export function RoadmapClient({ initialTrackTitle, initialRole }: RoadmapClientP
           <Link href="/learn">
             <Button size="sm" className="gap-2 font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm">
               <PlayCircle className="w-4 h-4" />
-              <span>Resume Day 2</span>
+              <span>Resume Day {userProgress?.activeDayNumber || 2}</span>
             </Button>
           </Link>
         </div>
@@ -640,8 +690,8 @@ export function RoadmapClient({ initialTrackTitle, initialRole }: RoadmapClientP
           </CardTitle>
         </CardHeader>
         <CardContent className="p-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-            {BUSINESS_ANALYST_MODULES.map((m) => {
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {modulesList.map((m) => {
               const Icon = getModuleIcon(m.iconName);
               const isSelected = selectedModuleNum === m.num;
               const isCompleted = m.status === "COMPLETED";
@@ -654,54 +704,95 @@ export function RoadmapClient({ initialTrackTitle, initialRole }: RoadmapClientP
                     setSelectedModuleNum(m.num);
                     setExpandedAll(false);
                   }}
-                  className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between min-h-[120px] ${
+                  className={`group relative overflow-hidden p-3.5 rounded-xl text-left transition-all duration-300 flex flex-col justify-between min-h-[145px] shadow-sm hover:shadow-xl cursor-pointer select-none border ${
                     isSelected
-                      ? "bg-indigo-50/90 border-indigo-600 shadow-xs ring-2 ring-indigo-500/20"
+                      ? "border-indigo-400 ring-2 ring-indigo-500 shadow-indigo-500/25 scale-[1.02]"
                       : isInProgress
-                      ? "bg-indigo-50/30 border-indigo-200 hover:border-indigo-400"
-                      : "bg-card border-border hover:bg-slate-50 hover:border-slate-300"
+                      ? "border-indigo-500/40 hover:border-indigo-400/80 hover:scale-[1.01]"
+                      : "border-white/10 hover:border-white/30 hover:scale-[1.01]"
                   }`}
                 >
-                  <div className="flex items-center justify-between w-full mb-1">
+                  {/* Background Image Layer */}
+                  <div className="absolute inset-0 z-0 overflow-hidden">
+                    <Image
+                      src={m.bgImage}
+                      alt={m.title}
+                      fill
+                      sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 16vw"
+                      className="object-cover object-center transition-transform duration-700 ease-out group-hover:scale-110"
+                      priority={m.num <= 2}
+                    />
+                    {/* Dark gradient & color overlay for superb contrast & readability */}
                     <div
-                      className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs ${
+                      className={`absolute inset-0 transition-opacity duration-300 ${
                         isSelected
-                          ? "bg-indigo-600 text-white shadow-xs"
+                          ? "bg-gradient-to-t from-slate-950 via-slate-950/85 to-indigo-950/60"
                           : isInProgress
-                          ? "bg-indigo-100 text-indigo-700"
-                          : "bg-muted text-muted-foreground"
+                          ? "bg-gradient-to-t from-slate-950 via-slate-950/85 to-slate-900/65 group-hover:from-slate-950/95 group-hover:via-slate-950/75"
+                          : "bg-gradient-to-t from-slate-950 via-slate-950/85 to-slate-900/70 group-hover:from-slate-950/95 group-hover:via-slate-950/75"
                       }`}
-                    >
-                      <Icon className="w-3.5 h-3.5" />
-                    </div>
-                    <span className="text-[10px] font-mono font-bold text-muted-foreground">
-                      MOD 0{m.num}
-                    </span>
-                  </div>
-
-                  <div>
-                    <span
-                      className={`text-xs font-bold leading-snug line-clamp-2 block ${
-                        isSelected ? "text-indigo-950 font-black" : "text-foreground"
-                      }`}
-                    >
-                      {m.title.replace(`Module ${m.num}: `, "")}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground block mt-0.5">
-                      {m.weeks} • {m.days.length} Days
-                    </span>
-                  </div>
-
-                  <div className="mt-2 pt-1 border-t border-border/50 flex items-center justify-between w-full">
-                    <Badge
-                      variant={isSelected ? "default" : isInProgress ? "secondary" : "outline"}
-                      className="text-[9px] py-0 h-4 font-mono font-bold px-1.5"
-                    >
-                      {isInProgress ? "Active (33%)" : isSelected ? "Viewing" : "Ready"}
-                    </Badge>
+                    />
+                    {/* Inner subtle glow for selected card */}
                     {isSelected && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse" />
+                      <div className="absolute inset-0 bg-indigo-600/10 mix-blend-screen pointer-events-none" />
                     )}
+                  </div>
+
+                  {/* Card Content */}
+                  <div className="relative z-10 flex flex-col justify-between h-full w-full">
+                    {/* Top Row: Icon + Module Code */}
+                    <div className="flex items-center justify-between w-full mb-2">
+                      <div
+                        className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs backdrop-blur-md transition-colors ${
+                          isSelected
+                            ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/50"
+                            : isInProgress
+                            ? "bg-indigo-500/30 text-indigo-200 border border-indigo-400/30"
+                            : "bg-white/15 text-white/90 border border-white/20 group-hover:bg-white/25"
+                        }`}
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="text-[10px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded backdrop-blur-md bg-black/40 text-slate-300 border border-white/10">
+                        MOD 0{m.num}
+                      </span>
+                    </div>
+
+                    {/* Middle: Title + Duration */}
+                    <div className="my-1.5">
+                      <span
+                        className={`text-xs font-bold leading-snug line-clamp-2 block transition-colors ${
+                          isSelected
+                            ? "text-white font-black drop-shadow-md"
+                            : "text-slate-100 group-hover:text-white drop-shadow-sm"
+                        }`}
+                      >
+                        {m.title.replace(`Module ${m.num}: `, "")}
+                      </span>
+                      <span className="text-[10px] text-slate-300/80 font-medium block mt-1 drop-shadow-xs">
+                        {m.weeks} • {m.days.length} Days
+                      </span>
+                    </div>
+
+                    {/* Bottom Row: Status Badge & Pulse Indicator */}
+                    <div className="mt-2 pt-2 border-t border-white/15 flex items-center justify-between w-full">
+                      <span
+                        className={`text-[9px] py-0.5 h-4 font-mono font-bold px-2 rounded-full inline-flex items-center gap-1 backdrop-blur-md transition-all ${
+                          isSelected
+                            ? "bg-indigo-500 text-white shadow-sm shadow-indigo-500/40"
+                            : isInProgress
+                            ? "bg-emerald-500/80 text-white border border-emerald-400/40"
+                            : "bg-white/15 text-slate-200 border border-white/20 group-hover:bg-white/25"
+                        }`}
+                      >
+                        {isInProgress ? "Active (33%)" : isSelected ? "Viewing" : "Ready"}
+                      </span>
+                      {isSelected ? (
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse ring-4 ring-indigo-400/30" />
+                      ) : isInProgress ? (
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      ) : null}
+                    </div>
                   </div>
                 </button>
               );
@@ -714,19 +805,27 @@ export function RoadmapClient({ initialTrackTitle, initialRole }: RoadmapClientP
       {expandedAll ? (
         /* Render All 6 Modules Sequentially */
         <div className="space-y-8">
-          {BUSINESS_ANALYST_MODULES.map((mod) => (
-            <ModuleDetailSection key={mod.num} mod={mod} />
+          {modulesList.map((mod) => (
+            <ModuleDetailSection key={mod.num} mod={mod} activeDayNumber={userProgress?.activeDayNumber} />
           ))}
         </div>
       ) : (
         /* Render Selected Module Detailed Breakdown */
-        <ModuleDetailSection mod={activeModule} isFocused />
+        <ModuleDetailSection mod={activeModule} isFocused activeDayNumber={userProgress?.activeDayNumber} />
       )}
     </div>
   );
 }
 
-function ModuleDetailSection({ mod, isFocused = false }: { mod: ModuleItem; isFocused?: boolean }) {
+function ModuleDetailSection({
+  mod,
+  isFocused = false,
+  activeDayNumber,
+}: {
+  mod: ModuleItem;
+  isFocused?: boolean;
+  activeDayNumber?: number;
+}) {
   const ModuleIcon = getModuleIcon(mod.iconName);
   const completedDaysCount = mod.days.filter((d) => d.isCompleted).length;
   const totalDaysInModule = mod.days.length;
@@ -734,8 +833,19 @@ function ModuleDetailSection({ mod, isFocused = false }: { mod: ModuleItem; isFo
   return (
     <div className="space-y-5">
       {/* Module Overview Banner */}
-      <div className="p-5 rounded-2xl bg-card border border-border shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
+      <div className="relative overflow-hidden p-5 rounded-2xl bg-card border border-border shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Subtle decorative image watermark on the right */}
+        <div className="absolute right-0 top-0 bottom-0 w-1/2 pointer-events-none overflow-hidden opacity-15 hidden sm:block">
+          <Image
+            src={mod.bgImage}
+            alt=""
+            fill
+            className="object-cover object-center"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-card via-card/80 to-transparent" />
+        </div>
+
+        <div className="flex items-center gap-3.5 relative z-10">
           <div className="w-11 h-11 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-xs flex-shrink-0">
             <ModuleIcon className="w-5 h-5" />
           </div>
@@ -786,7 +896,7 @@ function ModuleDetailSection({ mod, isFocused = false }: { mod: ModuleItem; isFo
       <div className="relative pl-6 space-y-3.5 before:absolute before:left-3 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200">
         {mod.days.map((d) => {
           const isCompleted = d.isCompleted;
-          const isCurrent = !isCompleted && d.isUnlocked && d.dayNumber === 2;
+          const isCurrent = !isCompleted && d.isUnlocked && (activeDayNumber ? d.dayNumber === activeDayNumber : d.dayNumber === 2);
           const isUnlocked = d.isUnlocked;
 
           return (

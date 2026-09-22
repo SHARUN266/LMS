@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { validateSQLSubmission } from "@/lib/sql-validator";
+import { validateSQLSubmission, isUnchangedStarterCode } from "@/lib/sql-validator";
 import { evaluateCodeSubmission } from "@/lib/ai";
 import { detectWeakTopics, generateAdaptiveSchedule } from "@/lib/adaptive";
 
@@ -94,12 +94,12 @@ export async function POST(
         let aiFeedback = "";
         let codeDiff = "";
 
-        if (userAnswer.length > 10) {
+        if (userAnswer.length > 10 && !isUnchangedStarterCode(userAnswer, q.starterCode)) {
           try {
-            // 1. Run deterministic SQL execution validator
-            const deterministicVal = await validateSQLSubmission(userAnswer, q.starterCode);
+            // 1. Run deterministic SQL execution validator against reference solution (q.correctAnswer)
+            const deterministicVal = await validateSQLSubmission(userAnswer, q.correctAnswer);
 
-            // 2. Run Gemini 2.0 Flash / Hybrid AI code evaluation
+            // 2. Run Gemini / Hybrid AI code evaluation
             const aiEval = await evaluateCodeSubmission(
               userAnswer,
               `Monday Exam Q${q.order}`,
@@ -108,25 +108,33 @@ export async function POST(
             );
 
             // 3. Combine deterministic correctness (40%) with AI rubric (60%)
-            const combinedScore = Math.min(
-              100,
-              (deterministicVal.correctnessScore || 0) +
-                ((aiEval.rubricScores?.queryLogic || 18) +
-                  (aiEval.rubricScores?.edgeCases || 12) +
-                  (aiEval.rubricScores?.performance || 9) +
-                  (aiEval.rubricScores?.readability || 8) +
-                  (aiEval.rubricScores?.explanation || 3))
-            );
+            let combinedScore = 0;
+            if (deterministicVal.correctnessScore > 0) {
+              combinedScore = Math.min(
+                100,
+                (deterministicVal.correctnessScore || 0) +
+                  ((aiEval.rubricScores?.queryLogic || 18) +
+                    (aiEval.rubricScores?.edgeCases || 12) +
+                    (aiEval.rubricScores?.performance || 9) +
+                    (aiEval.rubricScores?.readability || 8) +
+                    (aiEval.rubricScores?.explanation || 3))
+              );
+            } else {
+              combinedScore = Math.min(20, (aiEval.rubricScores?.queryLogic || 0) + (aiEval.rubricScores?.readability || 0));
+            }
 
             codeEarned = Math.round((combinedScore / 100) * weight);
             isCorrect = codeEarned >= Math.round(weight * 0.7);
             aiFeedback = aiEval.detailedFeedback;
-            codeDiff = aiEval.codeDiff || "";
+            codeDiff = aiEval.codeDiff || q.correctAnswer || "";
           } catch (e) {
-            codeEarned = Math.round(weight * 0.75);
-            isCorrect = true;
-            aiFeedback = "Query syntax verified with standard analytic formatting.";
+            codeEarned = 0;
+            isCorrect = false;
+            aiFeedback = "Query could not be evaluated. Verify syntax against schema.";
           }
+        } else {
+          aiFeedback = "Unchanged starter template or blank code submitted. 0 points.";
+          codeDiff = q.correctAnswer || "";
         }
 
         earnedPoints += codeEarned;

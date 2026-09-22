@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   BookOpen,
   Code2,
@@ -45,84 +46,92 @@ const PHASE_CONFIG: Record<
     iconBg: string;
     iconColor: string;
     ctaBg: string;
+    bgImage: string;
   }
 > = {
   LEARN: {
     icon: BookOpen,
     label: "Study Lesson",
-    gradient: "from-indigo-50 via-white to-white",
+    gradient: "from-indigo-50/70 via-white to-white",
     borderColor: "border-indigo-200",
-    badgeBg: "bg-indigo-50",
-    badgeText: "text-indigo-600",
+    badgeBg: "bg-indigo-50 border border-indigo-200",
+    badgeText: "text-indigo-700",
     iconBg: "bg-indigo-100",
     iconColor: "text-indigo-600",
     ctaBg: "bg-indigo-600 hover:bg-indigo-500",
+    bgImage: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1000&q=80",
   },
   PRACTICE: {
     icon: Code2,
     label: "Practice Drills",
-    gradient: "from-emerald-50 via-white to-white",
+    gradient: "from-emerald-50/70 via-white to-white",
     borderColor: "border-emerald-200",
-    badgeBg: "bg-emerald-50",
-    badgeText: "text-emerald-600",
+    badgeBg: "bg-emerald-50 border border-emerald-200",
+    badgeText: "text-emerald-700",
     iconBg: "bg-emerald-100",
     iconColor: "text-emerald-600",
     ctaBg: "bg-emerald-600 hover:bg-emerald-500",
+    bgImage: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1000&q=80",
   },
   ASSIGNMENT: {
     icon: FileCheck2,
     label: "Graded Assignment",
-    gradient: "from-amber-50 via-white to-white",
+    gradient: "from-amber-50/70 via-white to-white",
     borderColor: "border-amber-200",
-    badgeBg: "bg-amber-50",
-    badgeText: "text-amber-700",
+    badgeBg: "bg-amber-50 border border-amber-200",
+    badgeText: "text-amber-800",
     iconBg: "bg-amber-100",
     iconColor: "text-amber-600",
     ctaBg: "bg-amber-600 hover:bg-amber-500",
+    bgImage: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=1000&q=80",
   },
   EVALUATION: {
     icon: Award,
     label: "View Scorecard",
-    gradient: "from-purple-50 via-white to-white",
+    gradient: "from-purple-50/70 via-white to-white",
     borderColor: "border-purple-200",
-    badgeBg: "bg-purple-50",
-    badgeText: "text-purple-600",
+    badgeBg: "bg-purple-50 border border-purple-200",
+    badgeText: "text-purple-700",
     iconBg: "bg-purple-100",
     iconColor: "text-purple-600",
     ctaBg: "bg-purple-600 hover:bg-purple-500",
+    bgImage: "https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=1000&q=80",
   },
   ASSESSMENT: {
     icon: CalendarCheck,
     label: "Weekly Assessment",
-    gradient: "from-rose-50 via-white to-white",
+    gradient: "from-rose-50/70 via-white to-white",
     borderColor: "border-rose-200",
-    badgeBg: "bg-rose-50",
-    badgeText: "text-rose-600",
+    badgeBg: "bg-rose-50 border border-rose-200",
+    badgeText: "text-rose-700",
     iconBg: "bg-rose-100",
     iconColor: "text-rose-600",
     ctaBg: "bg-rose-600 hover:bg-rose-500",
+    bgImage: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1000&q=80",
   },
   PROJECT: {
     icon: Briefcase,
     label: "Capstone Project",
-    gradient: "from-amber-50 via-orange-50/30 to-white",
+    gradient: "from-amber-50/70 via-orange-50/30 to-white",
     borderColor: "border-amber-300",
-    badgeBg: "bg-amber-50",
-    badgeText: "text-amber-700",
+    badgeBg: "bg-amber-50 border border-amber-200",
+    badgeText: "text-amber-800",
     iconBg: "bg-amber-100",
     iconColor: "text-amber-600",
     ctaBg: "bg-amber-600 hover:bg-amber-500",
+    bgImage: "https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=1000&q=80",
   },
   ALL_DONE: {
     icon: Sparkles,
     label: "All Caught Up!",
-    gradient: "from-emerald-50 via-white to-white",
+    gradient: "from-emerald-50/70 via-white to-white",
     borderColor: "border-emerald-200",
-    badgeBg: "bg-emerald-50",
-    badgeText: "text-emerald-600",
+    badgeBg: "bg-emerald-50 border border-emerald-200",
+    badgeText: "text-emerald-700",
     iconBg: "bg-emerald-100",
     iconColor: "text-emerald-600",
     ctaBg: "bg-indigo-600 hover:bg-indigo-500",
+    bgImage: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1000&q=80",
   },
 };
 
@@ -144,10 +153,21 @@ export function MissionHeroCard({
 
   return (
     <div
-      className={`relative rounded-2xl border-2 ${config.borderColor} bg-gradient-to-br ${config.gradient} p-6 md:p-8 shadow-sm overflow-hidden transition-all`}
+      className={`relative rounded-2xl border-2 ${config.borderColor} bg-white p-6 md:p-8 shadow-xs overflow-hidden transition-all`}
     >
-      {/* Decorative background circle */}
-      <div className="absolute -right-16 -top-16 w-48 h-48 rounded-full bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
+      {/* Background Image Layer (Soft right-aligned fade to preserve pure light theme) */}
+      <div className="absolute right-0 top-0 bottom-0 w-full sm:w-7/12 pointer-events-none overflow-hidden z-0">
+        <Image
+          src={config.bgImage}
+          alt=""
+          fill
+          priority
+          className="object-cover object-center opacity-20"
+        />
+        {/* Multi-gradient wash for seamless integration into pure white card */}
+        <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-white/10 sm:from-white sm:via-white/70 sm:to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-transparent to-white/30" />
+      </div>
 
       <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         {/* Left: Info */}

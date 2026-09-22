@@ -56,7 +56,7 @@ export default function CapstoneProjectPage({ params }: { params: { projId: stri
   const [loading, setLoading] = useState(true);
   const [activeDay, setActiveDay] = useState(1);
 
-  const [repoUrl, setRepoUrl] = useState("https://github.com/learner/ecommerce-analytics-lakehouse");
+  const [repoUrl, setRepoUrl] = useState("");
   const [summaryText, setSummaryText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [togglingMilestone, setTogglingMilestone] = useState(false);

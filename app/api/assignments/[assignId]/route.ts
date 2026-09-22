@@ -8,7 +8,7 @@ export async function GET(
   try {
     const { assignId } = params;
 
-    let assignment = await db.assignment.findUnique({
+    let assignment: any = await db.assignment.findUnique({
       where: { id: assignId },
       include: {
         questions: {
@@ -28,7 +28,15 @@ export async function GET(
       },
     });
 
-    // Fallback if assignId is "daily-1", "daily-2", "1", "2"
+    // Fallback if assignId is a Day ID or day slug like "daily-2", "2"
+    if (!assignment) {
+      const isDay = await db.day.findUnique({ where: { id: assignId } });
+      if (isDay) {
+        const { getOrGenerateAssignment } = await import("@/lib/dynamic-generator");
+        assignment = await getOrGenerateAssignment(isDay.id);
+      }
+    }
+
     if (!assignment) {
       const match = assignId.match(/\d+/);
       const dayNum = match ? parseInt(match[0], 10) : 1;
@@ -56,6 +64,11 @@ export async function GET(
             },
           },
         });
+
+        if (!assignment) {
+          const { getOrGenerateAssignment } = await import("@/lib/dynamic-generator");
+          assignment = await getOrGenerateAssignment(targetDay.id);
+        }
       }
     }
 

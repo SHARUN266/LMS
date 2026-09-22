@@ -107,6 +107,20 @@ export default function EvaluationPage({ params }: { params: { subId: string } }
           score: data.score,
         }),
       });
+
+      const currentDayNum = data.submission.assignment.day.dayNumber || 1;
+      const nextDayNum = currentDayNum + 1;
+
+      // Try navigating directly to next day's lesson
+      const nextDayRes = await fetch(`/api/days/day-${nextDayNum}`);
+      if (nextDayRes.ok) {
+        const nextDayJson = await nextDayRes.json();
+        if (nextDayJson?.day) {
+          const modId = nextDayJson.day.week?.module?.id || "module-1";
+          router.push(`/learn/${modId}/${nextDayJson.day.id}`);
+          return;
+        }
+      }
       router.push("/roadmap");
     } catch (e) {
       router.push("/roadmap");
@@ -353,19 +367,23 @@ export default function EvaluationPage({ params }: { params: { subId: string } }
       {/* Next Step Transition Banner */}
       <div className="p-5 rounded-xl bg-card border border-border flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
         <div className="space-y-1 text-center sm:text-left">
-          <div className="flex items-center justify-center sm:justify-start gap-2 text-xs font-semibold text-emerald-400 uppercase tracking-wider">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>{passed ? "Milestone Completed" : "Revision Suggested"}</span>
+          <div
+            className={`flex items-center justify-center sm:justify-start gap-2 text-xs font-semibold uppercase tracking-wider ${
+              passed ? "text-emerald-500" : "text-rose-500"
+            }`}
+          >
+            {passed ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+            <span>{passed ? "Milestone Completed" : "Not Passed (Under 70% Passing Standard)"}</span>
           </div>
           <h3 className="text-sm font-bold text-foreground">
             {passed
               ? `Day ${dayNum} Passed! Continue to Next Day on Curriculum Roadmap`
-              : "Review Weak Areas & Practice Remedial Drills"}
+              : "Assignment Must Be Re-Attempted"}
           </h3>
           <p className="text-xs text-muted-foreground max-w-xl">
             {passed
               ? "Your progress has been recorded. Advance to the next day to continue your career track."
-              : "Access the remedial backlog to reinforce concepts before your weekly assessment."}
+              : "A passing score of 70% or higher is strictly required to complete this curriculum milestone and unlock subsequent days."}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -373,19 +391,27 @@ export default function EvaluationPage({ params }: { params: { subId: string } }
             <button
               onClick={handleUnlockNextDay}
               disabled={unlocking}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-sm transition-colors whitespace-nowrap"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-sm transition-colors whitespace-nowrap cursor-pointer"
             >
               <span>{unlocking ? "Saving..." : "Advance & View Roadmap"}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           ) : (
-            <Link
-              href="/backlog"
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-secondary hover:bg-secondary/80 text-secondary-foreground text-xs font-semibold border border-border transition-colors whitespace-nowrap"
-            >
-              <span>Go to Remedial Backlog</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/assignment/${data?.submission?.assignment?.day?.id || "day-1"}`}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-sm transition-colors whitespace-nowrap cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Re-Attempt Assignment</span>
+              </Link>
+              <Link
+                href="/backlog"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 text-secondary-foreground text-xs font-semibold border border-border transition-colors whitespace-nowrap"
+              >
+                <span>Remedial Tasks</span>
+              </Link>
+            </div>
           )}
         </div>
       </div>

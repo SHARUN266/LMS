@@ -19,6 +19,11 @@ import {
   X,
   Send,
   Lock,
+  Youtube,
+  ExternalLink,
+  Search,
+  ListChecks,
+  Play,
 } from "lucide-react";
 import { DailyStepper } from "@/components/DailyStepper";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,6 +34,20 @@ interface QuickQuizItem {
   question: string;
   options: string[];
   correctAnswer: string;
+}
+
+interface CuratedVideo {
+  title: string;
+  channel: string;
+  duration: string;
+  url: string;
+}
+
+interface ResourcesData {
+  query?: string;
+  url?: string;
+  videos?: CuratedVideo[];
+  checklist?: string[];
 }
 
 interface LessonData {
@@ -43,6 +62,8 @@ interface LessonData {
     content: string;
     cheatSheet?: string;
     quickQuiz?: string;
+    videoSearchQuery?: string;
+    resources?: string;
   };
   practice?: any[];
   assignments?: any[];
@@ -68,6 +89,7 @@ export default function LearnDayPage({
   const [quizAnswers, setQuizAnswers] = useState<Record<number, string>>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [quizPassed, setQuizPassed] = useState(false);
+  const [checkedTasks, setCheckedTasks] = useState<Record<number, boolean>>({});
 
   // AI Mentor state
   const [isMentorOpen, setIsMentorOpen] = useState(false);
@@ -176,6 +198,16 @@ export default function LearnDayPage({
     } catch {}
   }
 
+  const markTheoryComplete = () => {
+    if (dayData?.id) {
+      fetch(`/api/days/${dayData.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theoryCompleted: true }),
+      }).catch(console.error);
+    }
+  };
+
   const handleVerifyQuiz = () => {
     let allCorrect = true;
     for (let i = 0; i < quickQuizList.length; i++) {
@@ -186,11 +218,64 @@ export default function LearnDayPage({
     }
     setQuizSubmitted(true);
     setQuizPassed(allCorrect);
+    if (allCorrect) {
+      markTheoryComplete();
+    }
   };
 
   const dayNumber = dayData?.dayNumber || 2;
   const practiceUrl = `/practice/${dayData?.id || `day-${dayNumber}`}`;
   const cheatSheetCode = dayData?.lesson?.cheatSheet || "-- Quick syntax cheat sheet";
+
+  // Parse Curated YouTube Resources and 3-step practical checklist
+  let resourcesData: ResourcesData = {};
+  if (dayData?.lesson?.resources) {
+    try {
+      resourcesData = JSON.parse(dayData.lesson.resources);
+    } catch {}
+  }
+
+  const searchQuery =
+    resourcesData.query ||
+    dayData?.lesson?.videoSearchQuery ||
+    `${dayData?.title || "Data Analytics"} interview tutorial`;
+
+  const searchUrl =
+    resourcesData.url ||
+    `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`;
+
+  const videoList =
+    resourcesData.videos && resourcesData.videos.length > 0
+      ? resourcesData.videos
+      : [
+          {
+            title: `${dayData?.title || "Analytical Masterclass"} Complete Walkthrough`,
+            channel: "Ankit Bansal",
+            duration: "25 mins",
+            url: searchUrl,
+          },
+          {
+            title: "Real-world Analytics Case Studies & Interview Scenarios",
+            channel: "Alex The Analyst",
+            duration: "20 mins",
+            url: searchUrl,
+          },
+          {
+            title: "Production Best Practices & Traps",
+            channel: "Maven Analytics",
+            duration: "18 mins",
+            url: searchUrl,
+          },
+        ];
+
+  const checklistItems =
+    resourcesData.checklist && resourcesData.checklist.length > 0
+      ? resourcesData.checklist
+      : [
+          "Task 1: Watch the curated video tutorial and take structured architectural notes.",
+          "Task 2: Code the problem solution step-by-step in the interactive sandbox.",
+          "Task 3: Execute edge-case unit tests and submit the daily graded mission.",
+        ];
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-16 relative">
@@ -241,6 +326,149 @@ export default function LearnDayPage({
           </Link>
         </div>
       </div>
+
+      {/* 📺 Today's Curated Video Masterclass & YouTube Study Guide (Pure Light Theme) */}
+      <Card className="border border-red-200/90 bg-white shadow-sm overflow-hidden rounded-xl">
+        <div className="bg-red-50/60 px-6 py-4 border-b border-red-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-red-600 text-white flex items-center justify-center shadow-xs flex-shrink-0">
+              <Youtube className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-sm font-bold text-slate-900 tracking-tight">
+                  📺 Today's Curated Video Masterclass & YouTube Study Guide
+                </h2>
+                <Badge variant="outline" className="text-[10px] bg-red-50 text-red-700 border-red-200 font-bold">
+                  12 LPA Industry Curated
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Exact YouTube queries, educator masterclasses, and 3-step execution plan for Day {dayNumber}
+              </p>
+            </div>
+          </div>
+          <a
+            href={searchUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700 transition-colors shadow-xs self-start sm:self-auto"
+          >
+            <Search className="w-3.5 h-3.5" />
+            <span>Search YouTube</span>
+            <ExternalLink className="w-3 h-3 ml-0.5 opacity-80" />
+          </a>
+        </div>
+
+        <CardContent className="p-6 space-y-6">
+          {/* Exact YouTube Search Query Box */}
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-1">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <Search className="w-3.5 h-3.5 text-red-500" /> Exact YouTube Search Query
+              </div>
+              <div className="font-mono text-xs font-semibold text-slate-800 bg-white px-3 py-1.5 rounded border border-slate-200 inline-block shadow-2xs">
+                {searchQuery}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => copyCode(searchQuery)}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors flex items-center gap-1.5 shadow-2xs"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
+                <span>{copied ? "Copied!" : "Copy Query"}</span>
+              </button>
+              <a
+                href={searchUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3.5 py-1.5 rounded-lg bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-2xs"
+              >
+                <span>Open in YouTube</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          </div>
+
+          {/* Curated Top Videos */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                <Play className="w-3.5 h-3.5 text-red-500 fill-red-500" /> Top Educator Recommendations (Pick 1-2 to watch)
+              </h3>
+              <span className="text-[11px] text-slate-500">Curated for 12 LPA technical interviews</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {videoList.map((vid, vIdx) => (
+                <a
+                  key={vIdx}
+                  href={vid.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group block p-3.5 rounded-xl border border-slate-200 bg-white hover:border-red-300 hover:shadow-sm transition-all relative"
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <Badge variant="outline" className="text-[10px] font-bold text-red-600 border-red-200 bg-red-50/60">
+                      {vid.channel}
+                    </Badge>
+                    <span className="text-[10px] font-medium text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
+                      {vid.duration}
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-900 group-hover:text-red-600 transition-colors line-clamp-2 mb-2">
+                    {vid.title}
+                  </h4>
+                  <div className="flex items-center text-[11px] font-semibold text-red-600 gap-1 mt-auto">
+                    <span>Watch Tutorial</span>
+                    <ExternalLink className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+
+          {/* 3-Step Daily Practical Checklist */}
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                <ListChecks className="w-4 h-4 text-indigo-600" /> 3-Step Practical Execution Checklist
+              </h3>
+              <span className="text-[11px] text-slate-500 font-medium">
+                {Object.values(checkedTasks).filter(Boolean).length} of {checklistItems.length} completed
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {checklistItems.map((task, tIdx) => {
+                const isChecked = !!checkedTasks[tIdx];
+                return (
+                  <label
+                    key={tIdx}
+                    onClick={() => setCheckedTasks((prev) => ({ ...prev, [tIdx]: !prev[tIdx] }))}
+                    className={`flex items-start gap-3 p-2.5 rounded-lg border cursor-pointer transition-all text-xs ${
+                      isChecked
+                        ? "bg-emerald-50/80 border-emerald-200 text-slate-700"
+                        : "bg-white border-slate-200 text-slate-800 hover:bg-slate-50"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => {}}
+                      className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span className={isChecked ? "line-through text-slate-500" : "font-medium"}>
+                      {task}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Main Theory Card with Markdown Rendering */}
       <Card className="shadow-sm">
@@ -344,7 +572,7 @@ export default function LearnDayPage({
                       Review incorrect answers above to strengthen conceptual clarity.
                     </span>
                   )}
-                  <Link href={practiceUrl}>
+                  <Link href={practiceUrl} onClick={markTheoryComplete}>
                     <Button size="sm" variant="outline" className="gap-1 text-xs">
                       <span>Go to Practice</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -371,7 +599,7 @@ export default function LearnDayPage({
               Execute SQL queries against in-memory datasets with instant feedback, schema viewer, and progressive Socratic hints.
             </p>
           </div>
-          <Link href={practiceUrl}>
+          <Link href={practiceUrl} onClick={markTheoryComplete}>
             <Button className="gap-1.5 text-xs font-semibold whitespace-nowrap">
               <span>Continue to Step 2: Practice</span>
               <ArrowRight className="w-3.5 h-3.5" />

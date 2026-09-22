@@ -91,10 +91,10 @@ export async function getWorkflowState(): Promise<WorkflowState> {
   const userProfile = {
     name: profile?.name || "Learner",
     targetRole: profile?.targetRole || "Business Analyst",
-    currentStreak: profile?.currentStreak ?? 1,
-    longestStreak: profile?.longestStreak ?? 1,
+    currentStreak: profile?.currentStreak ?? 0,
+    longestStreak: profile?.longestStreak ?? 0,
     totalStudyMins: profile?.totalStudyMins ?? 0,
-    xp: profile?.xp ?? 150,
+    xp: profile?.xp ?? 0,
     level: profile?.level ?? 1,
     dailyStudyGoal: profile?.dailyStudyGoal ?? 6,
   };
@@ -241,8 +241,19 @@ export async function getWorkflowState(): Promise<WorkflowState> {
   const dayId = dayInfo?.id || `day-${dayInfo?.dayNumber || 2}`;
 
   // Check what the user has done today
-  const hasAssignment = activeDay?.assignments && activeDay.assignments.length > 0;
-  const assignment = hasAssignment ? activeDay!.assignments[0] : null;
+  let assignment = activeDay?.assignments && activeDay.assignments.length > 0 ? activeDay.assignments[0] : null;
+
+  // If learner has completed theory and practice but assignment is not yet generated, synthesize dynamically with AI!
+  if (activeDay?.theoryCompleted && activeDay?.practiceCompleted && !assignment) {
+    try {
+      const { getOrGenerateAssignment } = await import("@/lib/dynamic-generator");
+      assignment = await getOrGenerateAssignment(activeDay.id);
+    } catch (err) {
+      console.warn("Dynamic assignment generation in workflow error:", err);
+    }
+  }
+
+  const hasAssignment = Boolean(assignment);
   const hasSubmission = assignment?.submissions && assignment.submissions.length > 0;
   const submission = hasSubmission ? assignment!.submissions[0] : null;
   const hasEvaluation = submission?.evaluation != null;
@@ -328,24 +339,30 @@ export async function getWorkflowState(): Promise<WorkflowState> {
     ctaHref = `/evaluation/${submission!.id}`;
     ctaDescription = `Assignment submitted! Check your AI-generated scorecard.`;
     nextPreview = "Your submission is being evaluated.";
-  } else if (hasAssignment) {
-    // Has assignment but no submission — Assignment step (Step 3)
+  } else if (activeDay?.theoryCompleted && activeDay?.practiceCompleted && hasAssignment) {
+    // Both theory and practice drills completed — Step 3: Assignment
     currentPhase = "ASSIGNMENT";
     stepNumber = 3;
     ctaText = `Solve Day ${dayInfo.dayNumber} Assignment`;
     ctaHref = `/assignment/${assignment!.id}`;
     ctaDescription = `${assignment!.title} — graded by AI rubric, due tonight.`;
     nextPreview = "After submission, you'll receive an instant scorecard with detailed feedback.";
+  } else if (activeDay?.theoryCompleted) {
+    // Theory completed — Step 2: Practice Drills
+    currentPhase = "PRACTICE";
+    stepNumber = 2;
+    ctaText = `Practice Day ${dayInfo.dayNumber} Drills`;
+    ctaHref = `/practice/${dayId}`;
+    ctaDescription = "Interactive SQL sandbox with schema viewer and progressive hints.";
+    nextPreview = "Complete practice drills to unlock today's graded assignment.";
   } else {
-    // No assignment submission — check if practice exists
-    // For now, default to LEARN (Step 1) since we can't easily track
-    // if the user has "read" the lesson without a flag
+    // Initial state: Step 1 — Learn Theory & Micro-Quiz
     currentPhase = "LEARN";
     stepNumber = 1;
     ctaText = `Study Day ${dayInfo.dayNumber} Lesson`;
     ctaHref = `/learn/${moduleId}/${dayId}`;
     ctaDescription = `${dayInfo.title} — ${dayInfo.estimatedMins || 180} min estimated.`;
-    nextPreview = "After the lesson, practice SQL drills in the sandbox.";
+    nextPreview = "Complete the micro-quiz to unlock hands-on practice drills.";
   }
 
   // Module progress calculation

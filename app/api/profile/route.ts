@@ -8,14 +8,14 @@ export async function GET() {
       profile = await db.userProfile.create({
         data: {
           id: "user_default",
-          name: "Aman Gupta",
+          name: "Sharun",
           targetRole: "BI / Analytics Engineer",
           dailyStudyGoal: 6,
-          currentStreak: 12,
-          longestStreak: 15,
-          totalStudyMins: 2840,
-          xp: 1450,
-          level: 3,
+          currentStreak: 0,
+          longestStreak: 0,
+          totalStudyMins: 0,
+          xp: 0,
+          level: 1,
         },
       });
     }

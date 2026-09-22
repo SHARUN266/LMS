@@ -20,8 +20,8 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set) => ({
   isTimerRunning: false,
-  studySeconds: 14280, // e.g. ~3h 58m logged
-  streak: 12,
+  studySeconds: 0,
+  streak: 0,
   dailyGoalHours: 6,
   isSidebarOpen: true,
   activeTrack: "Business Analyst",

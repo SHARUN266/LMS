@@ -33,6 +33,32 @@ export interface ValidationResult {
 }
 
 /**
+ * Checks if a student query is unchanged starter code or trivial/blank.
+ */
+export function isUnchangedStarterCode(studentQuery: string, starterCode?: string | null): boolean {
+  if (!studentQuery || !studentQuery.trim()) return true;
+
+  const normalize = (s: string) =>
+    s
+      .replace(/--[^\r\n]*/g, "")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/;+\s*$/, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+
+  const normStudent = normalize(studentQuery);
+  if (normStudent.length < 15) return true;
+
+  if (starterCode && starterCode.trim()) {
+    const normStarter = normalize(starterCode);
+    if (normStudent === normStarter) return true;
+  }
+
+  return false;
+}
+
+/**
  * Validates a student SQL submission deterministically against SQLite sandbox datasets.
  */
 export async function validateSQLSubmission(
@@ -46,7 +72,6 @@ export async function validateSQLSubmission(
   // Step 1: Execute Student Query
   let studentRows: any[] = [];
   try {
-    // Sanitize query
     const cleaned = studentQuery.trim().replace(/;+$/, "");
     studentRows = await prisma.$queryRawUnsafe(cleaned);
   } catch (err: any) {
@@ -62,14 +87,29 @@ export async function validateSQLSubmission(
     };
   }
 
-  let correctnessScore = 10; // 10 points for valid syntax and execution
-  feedback.push("Query executed without syntax errors (+10 pts).");
-
-  if (!Array.isArray(studentRows) || studentRows.length === 0) {
-    feedback.push("Query returned 0 rows. Verify filter predicates and join conditions.");
+  // Trivial or non-analytical query check (e.g., SELECT 1)
+  const normQuery = studentQuery.toLowerCase();
+  const hasFrom = /\bfrom\b/.test(normQuery);
+  if (!hasFrom) {
     return {
       isExecutable: true,
-      correctnessScore: 12,
+      correctnessScore: 0,
+      rowCount: studentRows.length,
+      columnMatch: false,
+      rowMatch: false,
+      orderMatch: false,
+      feedback: ["Query does not select from any tables. You must query the sandbox database."],
+    };
+  }
+
+  let correctnessScore = 5; // Base 5 points for querying sandbox tables without errors
+  feedback.push("Query executed against sandbox without syntax errors (+5 pts).");
+
+  if (!Array.isArray(studentRows) || studentRows.length === 0) {
+    feedback.push("Query returned 0 rows. Verify filter predicates and join conditions (0 pts).");
+    return {
+      isExecutable: true,
+      correctnessScore: 0,
       rowCount: 0,
       columnMatch: false,
       rowMatch: false,
@@ -81,12 +121,19 @@ export async function validateSQLSubmission(
   const studentCols = Object.keys(studentRows[0]);
   const studentRowCount = studentRows.length;
 
-  // Step 2: If no reference solution query provided, grant base points for producing valid results
+  // Step 2: If no reference solution query provided, grant points based on analytical depth
   if (!solutionQuery || !solutionQuery.trim()) {
-    if (studentRowCount > 0) {
-      correctnessScore = 35;
-      feedback.push(`Returned ${studentRowCount} valid data rows with ${studentCols.length} columns.`);
-    }
+    const hasJoin = /\bjoin\b/.test(normQuery);
+    const hasGroup = /\bgroup\s+by\b/.test(normQuery);
+    const hasWindow = /\bover\s*\(/.test(normQuery);
+
+    let analyticPoints = 10;
+    if (hasJoin) analyticPoints += 8;
+    if (hasGroup || hasWindow) analyticPoints += 7;
+
+    correctnessScore = Math.min(30, analyticPoints);
+    feedback.push(`Returned ${studentRowCount} rows with ${studentCols.length} columns (+${correctnessScore} pts).`);
+
     return {
       isExecutable: true,
       correctnessScore,

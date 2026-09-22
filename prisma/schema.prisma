@@ -19,6 +19,7 @@ model UserProfile {
   totalStudyMins  Int      @default(0)
   activeModuleId  String?
   activeDayId     String?
+  experienceLevel String   @default("Beginner-Intermediate")
   xp              Int      @default(150)
   level           Int      @default(1)
   createdAt       DateTime @default(now())
@@ -68,6 +69,8 @@ model Day {
   estimatedMins Int              @default(180)
   isUnlocked  Boolean            @default(true)
   isCompleted Boolean            @default(false)
+  theoryCompleted   Boolean      @default(false)
+  practiceCompleted Boolean      @default(false)
   score       Int?
   lesson      Lesson?
   practice    PracticeExercise[]
@@ -76,14 +79,16 @@ model Day {
 }
 
 model Lesson {
-  id          String   @id @default(cuid())
-  dayId       String   @unique
-  day         Day      @relation(fields: [dayId], references: [id], onDelete: Cascade)
-  title       String
-  content     String   // Markdown notes & theory
-  cheatSheet  String?  // Quick reference syntax
-  quickQuiz   String?  // JSON of 3 micro knowledge checks
-  createdAt   DateTime @default(now())
+  id               String   @id @default(cuid())
+  dayId            String   @unique
+  day              Day      @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  title            String
+  content          String   // Markdown notes & theory
+  cheatSheet       String?  // Quick reference syntax
+  quickQuiz        String?  // JSON of 3 micro knowledge checks
+  videoSearchQuery String?  // YouTube 1-click search query
+  resources        String?  // JSON array of curated video titles, URLs, channels & 3-step checklist
+  createdAt        DateTime @default(now())
 }
 
 model PracticeExercise {
@@ -116,16 +121,18 @@ model Assignment {
 }
 
 model AssignmentQuestion {
-  id           String     @id @default(cuid())
-  assignmentId String
-  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  order        Int
-  category     String     @default("SQL")
-  prompt       String
-  starterCode  String?
-  sampleData   String?
-  weight       Int        @default(20)
-  createdAt    DateTime   @default(now())
+  id             String     @id @default(cuid())
+  assignmentId   String
+  assignment     Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  order          Int
+  category       String     @default("SQL")
+  prompt         String
+  starterCode    String?
+  sampleData     String?
+  weight         Int        @default(20)
+  isAdaptive     Boolean    @default(false)
+  adaptiveReason String?    // Explanation of why this problem was tailored
+  createdAt      DateTime   @default(now())
 }
 
 model Submission {
@@ -277,3 +284,72 @@ model MentorMessage {
   context     String?  // module or assignment context
   createdAt   DateTime @default(now())
 }
+
+model AdminConfig {
+  id               String   @id @default("admin_default")
+  activeModel      String   @default("gemini-2.5-flash")
+  strictness       Int      @default(85)
+  passingThreshold Int      @default(70)
+  updatedAt        DateTime @updatedAt
+}
+
+model Customer {
+  id         Int     @id @default(autoincrement())
+  name       String
+  email      String?
+  city       String?
+  country    String?
+  segment    String?
+  signupDate String? @map("signup_date")
+  orders     Order[]
+
+  @@map("customers")
+}
+
+model Product {
+  id            Int         @id @default(autoincrement())
+  name          String
+  category      String
+  price         Float
+  cost          Float
+  stockQuantity Int?        @map("stock_quantity")
+  orderItems    OrderItem[]
+
+  @@map("products")
+}
+
+model Order {
+  id          Int         @id @default(autoincrement())
+  customerId  Int?        @map("customer_id")
+  orderDate   String      @map("order_date")
+  totalAmount Float       @map("total_amount")
+  status      String
+  customer    Customer?   @relation(fields: [customerId], references: [id])
+  items       OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        Int      @id @default(autoincrement())
+  orderId   Int?     @map("order_id")
+  productId Int?     @map("product_id")
+  quantity  Int
+  unitPrice Float    @map("unit_price")
+  order     Order?   @relation(fields: [orderId], references: [id])
+  product   Product? @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+model Employee {
+  id         Int     @id @default(autoincrement())
+  name       String
+  department String
+  salary     Float
+  managerId  Int?    @map("manager_id")
+  hireDate   String? @map("hire_date")
+
+  @@map("employees")
+}
+
