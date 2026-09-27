@@ -6,11 +6,13 @@ import { validateSQLSubmission, isUnchangedStarterCode } from "@/lib/sql-validat
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { assignmentId, submittedCode, notes } = body;
+    const assignmentId = body.assignmentId;
+    const submittedCode = body.submittedCode || body.code;
+    const notes = body.notes;
 
     if (!assignmentId || !submittedCode) {
       return NextResponse.json(
-        { error: "assignmentId and submittedCode are required" },
+        { error: "assignmentId and submittedCode (or code) are required" },
         { status: 400 }
       );
     }
@@ -61,7 +63,7 @@ export async function POST(req: Request) {
 
     const questionPrompt = assignment.questions[0]?.prompt || assignment.description;
     const starterCode = assignment.questions[0]?.starterCode || null;
-    const referenceSolution = assignment.day?.practice[0]?.solution || null;
+    const referenceSolution = null; // Assignments have distinct custom prompts evaluated by AI & execution sandbox
     const category = assignment.type || "SQL";
 
     // --- STEP 0: Strict Guard: Reject Unmodified Starter Code & Trivial Queries ---

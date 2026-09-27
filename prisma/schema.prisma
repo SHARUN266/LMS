@@ -277,12 +277,23 @@ model BacklogItem {
   createdAt   DateTime @default(now())
 }
 
+model MentorSession {
+  id        String          @id @default(cuid())
+  title     String          @default("New Session")
+  mode      String          @default("socratic")
+  messages  MentorMessage[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
 model MentorMessage {
-  id          String   @id @default(cuid())
-  sender      String   // "user" | "mentor"
-  message     String
-  context     String?  // module or assignment context
-  createdAt   DateTime @default(now())
+  id        String         @id @default(cuid())
+  sessionId String?
+  session   MentorSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sender    String         // "user" | "mentor"
+  message   String
+  context   String?        // module or assignment context
+  createdAt DateTime       @default(now())
 }
 
 model AdminConfig {

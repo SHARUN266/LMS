@@ -18,8 +18,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { DailyStepper } from "@/components/DailyStepper";
-
-const Editor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
+import { CodeEditor } from "@/components/CodeEditor";
 
 interface PracticeItem {
   id: string;
@@ -442,21 +441,12 @@ SELECT * FROM orders LIMIT 10;`);
             <span className="text-[11px] text-muted-foreground">PostgreSQL / SQLite Sandbox</span>
           </div>
           <div className="flex-1 min-h-0 bg-slate-950">
-            <Editor
+            <CodeEditor
               height="100%"
               defaultLanguage="sql"
               theme="vs-dark"
               value={code}
               onChange={(val) => setCode(val || "")}
-              options={{
-                minimap: { enabled: false },
-                fontSize: 13,
-                fontFamily: "Fira Code, monospace",
-                lineNumbers: "on",
-                scrollBeyondLastLine: false,
-                wordWrap: "on",
-                padding: { top: 12 },
-              }}
             />
           </div>
         </div>

@@ -40,5 +40,3 @@ export function AIStatusBadge() {
   );
 }
 
-// Backward compatibility export
-export const OllamaStatusBadge = AIStatusBadge;

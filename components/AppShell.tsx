@@ -21,6 +21,7 @@ import {
   CalendarCheck,
   Briefcase,
   AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
@@ -46,8 +47,9 @@ const PRIMARY_NAV = [
 // Secondary: Tools & extras (separated visually)
 const SECONDARY_NAV = [
   { label: "Curriculum Roadmap", href: "/roadmap", icon: Map },
+  { label: "AI Course Studio", href: "/admin/studio", icon: Sparkles },
   { label: "Analytics", href: "/dashboard#analytics", icon: BarChart3 },
-  { label: "AI Mentor", href: "/mentor", icon: Bot },
+  { label: "Axiom Copilot", href: "/mentor", icon: Bot },
   { label: "Weekly Assessment", href: "/assessment", icon: CalendarCheck },
   { label: "Capstone Project", href: "/projects", icon: Briefcase },
   { label: "Remedial Backlog", href: "/backlog", icon: AlertTriangle },

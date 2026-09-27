@@ -19,8 +19,7 @@ import {
   Award,
 } from "lucide-react";
 import { DailyStepper } from "@/components/DailyStepper";
-
-const Editor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
+import { CodeEditor } from "@/components/CodeEditor";
 
 interface AssignmentQuestion {
   id: string;
@@ -731,21 +730,12 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
             </div>
 
             <div className="flex-1 min-h-0 bg-slate-950">
-              <Editor
+              <CodeEditor
                 height="100%"
                 defaultLanguage={langInfo.lang}
                 theme="vs-dark"
                 value={activeCode}
-                onChange={handleCodeChange}
-                options={{
-                  minimap: { enabled: false },
-                  fontSize: 13,
-                  fontFamily: "Fira Code, monospace",
-                  lineNumbers: "on",
-                  scrollBeyondLastLine: false,
-                  wordWrap: "on",
-                  padding: { top: 14 },
-                }}
+                onChange={(val) => handleCodeChange(val || "")}
               />
             </div>
           </div>

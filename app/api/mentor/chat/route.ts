@@ -1,13 +1,22 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { chatWithMentor, MentorMode } from "@/lib/ai";
-import { detectWeakTopics } from "@/lib/adaptive";
+import { buildMentorContext } from "@/lib/mentor-context";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const sessionId = searchParams.get("sessionId");
+
+    let whereClause: any = {};
+    if (sessionId) {
+      whereClause.sessionId = sessionId;
+    }
+
     const messages = await db.mentorMessage.findMany({
+      where: whereClause,
       orderBy: { createdAt: "asc" },
-      take: 50,
+      take: 100,
     });
     return NextResponse.json({ messages });
   } catch (error: any) {
@@ -16,61 +25,109 @@ export async function GET() {
   }
 }
 
+function deriveSessionTitle(message: string): string {
+  const clean = message.replace(/[\n\r]+/g, " ").trim();
+  if (clean.length <= 36) return clean;
+  return clean.slice(0, 33).trim() + "...";
+}
+
 export async function POST(req: Request) {
   try {
-    const { message, context, mode = "socratic" } = await req.json();
+    const { message, context, mode = "socratic", sessionId } = await req.json();
     if (!message) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
     }
 
-    // Save User message
+    // 1. Resolve or create target session
+    let targetSessionId = sessionId;
+    let targetSession = null;
+
+    if (targetSessionId) {
+      targetSession = await db.mentorSession.findUnique({
+        where: { id: targetSessionId },
+      });
+    }
+
+    if (!targetSession) {
+      targetSession = await db.mentorSession.create({
+        data: {
+          title: deriveSessionTitle(message),
+          mode: mode,
+        },
+      });
+      targetSessionId = targetSession.id;
+    } else if (
+      targetSession.title === "New Session" ||
+      targetSession.title === "New Chat"
+    ) {
+      // Auto-title session from the first meaningful message
+      const updatedTitle = deriveSessionTitle(message);
+      await db.mentorSession.update({
+        where: { id: targetSessionId },
+        data: { title: updatedTitle, mode },
+      });
+      targetSession.title = updatedTitle;
+    }
+
+    // 2. Save User message
     await db.mentorMessage.create({
       data: {
+        sessionId: targetSessionId,
         sender: "user",
         message: message,
         context: context || "",
       },
     });
 
-    // Fetch past conversation
+    // 3. Fetch past conversation SCOPED to this session for contextual integrity
     const history = await db.mentorMessage.findMany({
+      where: { sessionId: targetSessionId },
       orderBy: { createdAt: "desc" },
-      take: 6,
+      take: 8,
     });
     const formattedHistory = history.reverse().map((m) => ({
       role: m.sender === "user" ? ("user" as const) : ("assistant" as const),
       content: m.message,
     }));
 
-    // Inject learner profile & real weak areas as rich context
-    let richContext = context || "Module 1: Advanced SQL for Analytics Engineering";
-    try {
-      const profile = await db.userProfile.findFirst();
-      const weakTopics = await detectWeakTopics();
-      const weakList = weakTopics.filter((t) => t.score < 75).map((t) => `${t.topic} (${t.score}%)`);
+    // 4. Build comprehensive learner context from platform data
+    const mentorCtx = await buildMentorContext(context, mode);
 
-      richContext = `${richContext}
-Student: ${profile?.name || "Learner"} (Target Role: ${profile?.targetRole || "BI / Analytics Engineer"}, Level: ${profile?.level || 1}, Streak: ${profile?.currentStreak || 1} Days)
-Identified Weak Topics to Reinforce: ${weakList.length > 0 ? weakList.join(", ") : "All core concepts proficient"}
-Selected Mentor Mode: ${mode.toUpperCase()}
-`;
-    } catch {}
+    // 5. Get response from Gemini / Axiom AI
+    const aiResponse = await chatWithMentor(
+      message,
+      formattedHistory,
+      mentorCtx.contextString,
+      mode as MentorMode
+    );
 
-    // Get response from Gemini 2.0 Flash / Hybrid AI
-    const aiResponse = await chatWithMentor(message, formattedHistory, richContext, mode as MentorMode);
-
-    // Save Mentor response
+    // 6. Save Mentor response
     const savedMentorMsg = await db.mentorMessage.create({
       data: {
+        sessionId: targetSessionId,
         sender: "mentor",
         message: aiResponse,
         context: context || "",
       },
     });
 
-    return NextResponse.json({ message: savedMentorMsg.message, mode });
+    // 7. Touch session updatedAt and mode
+    await db.mentorSession.update({
+      where: { id: targetSessionId },
+      data: {
+        updatedAt: new Date(),
+        mode,
+      },
+    });
+
+    return NextResponse.json({
+      message: savedMentorMsg.message,
+      mode,
+      sessionId: targetSessionId,
+      sessionTitle: targetSession.title,
+    });
   } catch (error: any) {
-    console.error("Mentor chat error:", error);
+    console.error("Axiom chat error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

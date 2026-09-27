@@ -149,36 +149,48 @@ export async function PATCH(
       },
     });
 
-    // If day was marked completed, unlock the next day across the curriculum
+    // If day was marked completed, check if today's POTD is completed before unlocking next day
+    let potdGateLocked = false;
+    let nextDayUnlocked = false;
+
     if (isCompleted) {
+      const todayKey = new Date().toISOString().split("T")[0];
+      const { hasSolvedTodayPOTD } = await import("@/lib/potd");
+      const potdSolved = await hasSolvedTodayPOTD(todayKey);
+
       const nextDay = await db.day.findFirst({
         where: {
           dayNumber: day.dayNumber + 1,
         },
       });
 
-      if (nextDay) {
-        await db.day.update({
-          where: { id: nextDay.id },
-          data: { isUnlocked: true },
-        });
-
-        // Trigger AI Adaptive Assignment Generation for Next Day based on today's performance
-        try {
-          const latestEval = await db.evaluation.findFirst({
-            orderBy: { createdAt: "desc" },
-            include: { submission: true },
+      if (potdSolved) {
+        if (nextDay) {
+          await db.day.update({
+            where: { id: nextDay.id },
+            data: { isUnlocked: true },
           });
-          const weakAreas = latestEval?.weakAreas ? JSON.parse(latestEval.weakAreas) : [];
-          await generateAdaptiveAssignmentForNextDay(
-            nextDay.id,
-            score ?? latestEval?.score ?? 80,
-            Array.isArray(weakAreas) ? weakAreas : [],
-            60
-          );
-        } catch (adaptErr) {
-          console.warn("Adaptive generation trigger note:", adaptErr);
+          nextDayUnlocked = true;
+
+          // Trigger AI Adaptive Assignment Generation for Next Day based on today's performance
+          try {
+            const latestEval = await db.evaluation.findFirst({
+              orderBy: { createdAt: "desc" },
+              include: { submission: true },
+            });
+            const weakAreas = latestEval?.weakAreas ? JSON.parse(latestEval.weakAreas) : [];
+            await generateAdaptiveAssignmentForNextDay(
+              nextDay.id,
+              score ?? latestEval?.score ?? 80,
+              Array.isArray(weakAreas) ? weakAreas : [],
+              60
+            );
+          } catch (adaptErr) {
+            console.warn("Adaptive generation trigger note:", adaptErr);
+          }
         }
+      } else {
+        potdGateLocked = true;
       }
 
       // Award XP to user profile
@@ -194,7 +206,15 @@ export async function PATCH(
       }
     }
 
-    return NextResponse.json({ day: updatedDay, success: true });
+    return NextResponse.json({
+      day: updatedDay,
+      success: true,
+      potdGateLocked,
+      nextDayUnlocked,
+      message: potdGateLocked
+        ? "Today's POTD (Problem of the Day) must be completed before unlocking Next Day's curriculum!"
+        : undefined,
+    });
   } catch (error: any) {
     console.error("Error updating day:", error);
     return NextResponse.json({ error: "Failed to update day", details: error.message }, { status: 500 });

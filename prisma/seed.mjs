@@ -43,7 +43,7 @@ async function main() {
     data: {
       id: "user_default",
       name: "Sharun",
-      targetRole: "Business Analyst & Analytics Engineer",
+      targetRole: "Data Analyst (12 LPA GCC Track)",
       dailyStudyGoal: 6,
       currentStreak: 0,
       longestStreak: 0,
@@ -93,6 +93,13 @@ async function main() {
         icon: modData.icon,
       },
     });
+
+    if (modOrder === 1) {
+      await prisma.userProfile.update({
+        where: { id: user.id },
+        data: { activeModuleId: moduleRecord.id },
+      });
+    }
 
     const week = await prisma.week.create({
       data: {

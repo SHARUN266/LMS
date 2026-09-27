@@ -18,7 +18,7 @@ import {
   Save,
 } from "lucide-react";
 
-const Editor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
+import { CodeEditor } from "@/components/CodeEditor";
 
 interface AssessmentQuestion {
   id: string;
@@ -413,21 +413,12 @@ export default function AssessmentHallPage({ params }: { params: { assessId: str
                   <span>PostgreSQL / SQLite Sandbox</span>
                 </div>
                 <div className="h-80 rounded-xl overflow-hidden border border-border bg-slate-950">
-                  <Editor
+                  <CodeEditor
                     height="100%"
                     defaultLanguage="sql"
                     theme="vs-dark"
                     value={answers[currentQuestion.id] || currentQuestion.starterCode || "-- Write query here"}
                     onChange={(val) => setAnswers((prev) => ({ ...prev, [currentQuestion.id]: val || "" }))}
-                    options={{
-                      minimap: { enabled: false },
-                      fontSize: 13,
-                      fontFamily: "Fira Code, monospace",
-                      lineNumbers: "on",
-                      scrollBeyondLastLine: false,
-                      wordWrap: "on",
-                      padding: { top: 10 },
-                    }}
                   />
                 </div>
               </div>

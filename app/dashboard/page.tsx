@@ -124,11 +124,11 @@ export default async function DashboardPage() {
               </span>
               {hasSolvedPOTD ? (
                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 flex items-center gap-1">
-                  ✓ Solved Today
+                  ✓ Solved Today (+50 XP)
                 </span>
               ) : (
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  Daily Muscle-Memory
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                  🔒 Mandatory Gate: Must solve to unlock Next Day
                 </span>
               )}
             </div>

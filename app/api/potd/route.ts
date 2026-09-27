@@ -17,7 +17,11 @@ export async function GET() {
         concept: potd.concept,
         scenario: potd.scenario,
         starterCode: potd.starterCode,
+        thinkingFramework: potd.thinkingFramework,
+        hintLadder: potd.hintLadder,
         testScenarios: potd.testScenarios,
+        optimalAnalysis: potd.optimalAnalysis,
+        learnerContextSummary: potd.learnerContextSummary,
         isSolved,
       },
     });
