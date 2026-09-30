@@ -9,6 +9,7 @@ export interface AnalyticsProfile {
   totalStudyMins: number;
   xp: number;
   level: number;
+  eloRating: number;
 }
 
 export interface AnalyticsData {
@@ -44,15 +45,17 @@ export interface AnalyticsData {
 
 export async function getAnalyticsData(): Promise<AnalyticsData> {
   try {
-    const profile = (await db.userProfile.findFirst()) || {
-      name: "Learner",
-      targetRole: "BI / Analytics Engineer",
-      dailyStudyGoal: 6,
-      currentStreak: 0,
-      longestStreak: 0,
-      totalStudyMins: 0,
-      xp: 0,
-      level: 1,
+    const rawProfile = await db.userProfile.findFirst();
+    const profile = {
+      name: rawProfile?.name || "Learner",
+      targetRole: rawProfile?.targetRole || "BI / Analytics Engineer",
+      dailyStudyGoal: rawProfile?.dailyStudyGoal || 6,
+      currentStreak: rawProfile?.currentStreak || 0,
+      longestStreak: rawProfile?.longestStreak || 0,
+      totalStudyMins: rawProfile?.totalStudyMins || 0,
+      xp: rawProfile?.xp || 0,
+      level: rawProfile?.level || 1,
+      eloRating: (rawProfile as any)?.eloRating || 1200,
     };
 
     const days = await db.day.findMany({
@@ -216,6 +219,7 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
         totalStudyMins: 0,
         xp: 0,
         level: 1,
+        eloRating: 1200,
       },
       days: { total: 36, completed: 0, avgScore: 0 },
       assignments: { evaluatedCount: 0, avgScore: 0, strengths: [], weakAreas: [] },

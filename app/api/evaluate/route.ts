@@ -377,6 +377,22 @@ export async function POST(req: Request) {
       }
     }
 
+    // ── Clean Skill Mastery Update (Passing Threshold >= 75%) ──
+    try {
+      const dayRecord = assignment.day;
+      if (dayRecord) {
+        await db.skill.updateMany({
+          where: { dayId: dayRecord.id },
+          data: {
+            masteryScore: finalPassed ? Math.min(1.0, calculatedTotalScore / 100) : 0.4,
+            lastPracticed: new Date(),
+          },
+        });
+      }
+    } catch (skillErr) {
+      console.warn("Skill mastery update note:", skillErr);
+    }
+
     return NextResponse.json({
       submissionId: submission.id,
       evaluationId: evaluation.id,

@@ -786,6 +786,18 @@ export default function DailyChallengePage() {
                   ))}
                 </div>
               )}
+
+              {evalResult.passed && (
+                <div className="pt-3 border-t border-emerald-300 dark:border-emerald-800 flex justify-end">
+                  <Link
+                    href={`/assignment/daily-1`}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-colors"
+                  >
+                    <span>Proceed to Step 4: Graded Assignment</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              )}
             </div>
           )}
 

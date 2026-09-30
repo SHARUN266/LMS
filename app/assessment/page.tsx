@@ -48,15 +48,15 @@ export default async function AssessmentsHubPage() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Badge variant="outline" className="text-primary border-primary/30 text-[11px] font-mono">
-              WEEKLY ASSESSMENTS
+              MONDAY BENCHMARK EXAMS
             </Badge>
-            <span className="text-xs text-muted-foreground">• Timed Weekly Checkpoint Exams</span>
+            <span className="text-xs text-muted-foreground">• 180–300 Mins High-Stakes Evaluation</span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Weekly Assessment Hall
+            Monday High-Stakes Assessment Hall
           </h1>
           <p className="text-xs text-muted-foreground mt-1 max-w-xl">
-            90-minute timed milestone exams. Combines MCQs, edge-case analysis, and live SQL coding drills.
+            Rigorous 3-Hour Monday Benchmark Evaluations. Covers the entire previous week: Architectural MCQs, live SQL/Python problems, and performance debugging. Passing threshold: 75%.
           </p>
         </div>
 

@@ -20,5 +20,6 @@ const nextConfig = {
   },
 };
 
+// AXIOM v2.0 Adaptive LMS Config
 export default nextConfig;
 

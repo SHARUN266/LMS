@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { Loader2 } from "lucide-react";
 
 // Safe dynamic import of Monaco Editor with resolution of nested default/Editor export
-const Monaco = dynamic(
+const Monaco = dynamic<any>(
   () =>
     import("@monaco-editor/react").then((mod: any) => {
       if (mod?.default?.default) return mod.default.default;

@@ -106,7 +106,48 @@ export async function GET(
       return NextResponse.json({ error: "Day not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ day });
+    // ── Attach Knowledge Graph Micro-Skills ──
+    const daySkills = await db.skill.findMany({
+      where: { dayId: day.id },
+      include: {
+        prerequisites: {
+          include: { fromSkill: true },
+        },
+      },
+    });
+    (day as any).skills = daySkills;
+
+    // ── JIT Content Synthesis (if lesson is missing or placeholder) ──
+    if (!day.lesson || !day.lesson.content || day.lesson.content.length < 200) {
+      try {
+        const { synthesizeLessonOnDemand } = await import("@/lib/content-synthesizer");
+        const freshLesson = await synthesizeLessonOnDemand(day.id);
+        (day as any).lesson = freshLesson;
+      } catch (synthErr) {
+        console.warn("JIT lesson synthesis note:", synthErr);
+      }
+    }
+
+    // ── Knowledge Graph Prerequisite Verification ──
+    let prerequisiteWarnings: any[] = [];
+    if (daySkills && daySkills.length > 0) {
+      try {
+        const { checkPrerequisitesMet } = await import("@/lib/knowledge-graph");
+        for (const sk of daySkills) {
+          const check = await checkPrerequisitesMet(sk.slug);
+          if (!check.met) {
+            prerequisiteWarnings.push(...check.unmetPrerequisites);
+          }
+        }
+      } catch (prereqErr) {
+        console.warn("Prereq check note:", prereqErr);
+      }
+    }
+
+    return NextResponse.json({
+      day,
+      prerequisiteWarnings,
+    });
   } catch (error: any) {
     console.error("Error fetching day:", error);
     return NextResponse.json({ error: "Failed to fetch day", details: error.message }, { status: 500 });

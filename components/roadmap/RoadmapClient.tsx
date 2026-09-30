@@ -677,20 +677,20 @@ export function RoadmapClient({
         </div>
       </div>
 
-      {/* 6-Module Interactive Milestone Selector Cards */}
+      {/* Career Modules Interactive Milestone Selector Cards */}
       <Card className="bg-card border border-border shadow-xs">
         <CardHeader className="py-3.5 px-5 border-b border-border bg-slate-50/50">
           <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
             <span className="flex items-center gap-1.5">
-              <Milestone className="w-4 h-4 text-indigo-600" /> All 6 Career Modules (Click any module to inspect syllabus)
+              <Milestone className="w-4 h-4 text-indigo-600" /> All {modulesList.length} Career Modules (Click any module to inspect syllabus)
             </span>
             <span className="text-indigo-600 font-mono text-[11px] font-bold">
-              Module {selectedModuleNum} of 6 Selected
+              Module {selectedModuleNum} of {modulesList.length} Selected
             </span>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {modulesList.map((m) => {
               const Icon = getModuleIcon(m.iconName);
               const isSelected = selectedModuleNum === m.num;
@@ -754,7 +754,7 @@ export function RoadmapClient({
                         <Icon className="w-3.5 h-3.5" />
                       </div>
                       <span className="text-[10px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded backdrop-blur-md bg-black/40 text-slate-300 border border-white/10">
-                        MOD 0{m.num}
+                        MOD {String(m.num).padStart(2, "0")}
                       </span>
                     </div>
 

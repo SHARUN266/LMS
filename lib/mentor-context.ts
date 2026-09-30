@@ -194,8 +194,11 @@ export async function buildMentorContext(
 ═══ LEARNER PROFILE ═══
 Name: ${learnerName}
 Target Role: ${profile?.targetRole || "BI / Analytics Engineer"}
+Coding Background: JavaScript Developer transitioning to Data Engineering / Analytics (Always bridge data concepts to JS mental models like Array.map/filter/reduce, closures, and object lookups!)
 Experience Level: ${profile?.experienceLevel || "Beginner-Intermediate"}
 XP: ${profile?.xp || 0} | Level: ${profile?.level || 1}
+Elo Rating: ${(profile as any)?.eloRating || 1200} (Calibrated Challenge Target: ${((profile as any)?.eloRating || 1200) + 50})
+Modality Preference: ${(profile as any)?.modalityPreference || "VIDEO_CODE"} (Visual & Audio learner - keep explanations concise with direct JS code analogies!)
 Current Streak: ${profile?.currentStreak || 0} days | Longest: ${profile?.longestStreak || 0} days
 Total Study Hours: ${totalStudyHours}h | Daily Goal: ${profile?.dailyStudyGoal || 6}h
 

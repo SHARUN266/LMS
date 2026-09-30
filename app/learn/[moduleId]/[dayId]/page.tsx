@@ -93,6 +93,7 @@ export default function LearnDayPage({
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [quizPassed, setQuizPassed] = useState(false);
   const [checkedTasks, setCheckedTasks] = useState<Record<number, boolean>>({});
+  const [prereqWarnings, setPrereqWarnings] = useState<any[]>([]);
 
   // ── Axiom Inline Mentor state ─────────────────────────────
   const [isMentorOpen, setIsMentorOpen] = useState(false);
@@ -117,6 +118,9 @@ export default function LearnDayPage({
           const data = await res.json();
           if (data.day) {
             setDayData(data.day);
+          }
+          if (data.prerequisiteWarnings) {
+            setPrereqWarnings(data.prerequisiteWarnings);
           }
         }
       } catch (err) {
@@ -340,6 +344,21 @@ export default function LearnDayPage({
           {dayData?.objective && (
             <p className="text-xs text-muted-foreground mt-1 max-w-2xl">{dayData.objective}</p>
           )}
+
+          {(dayData as any)?.skills && (dayData as any).skills.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap mt-2.5">
+              <span className="text-[11px] font-semibold text-muted-foreground mr-1">Target Skills:</span>
+              {(dayData as any).skills.map((sk: any) => (
+                <Badge
+                  key={sk.id}
+                  variant="secondary"
+                  className="text-[10px] py-0.5 px-2 font-medium bg-muted text-foreground border border-border"
+                >
+                  ⚡ {sk.name}
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -361,6 +380,22 @@ export default function LearnDayPage({
           </Link>
         </div>
       </div>
+
+      {/* 🧠 Knowledge Graph Prerequisite Advisory */}
+      {prereqWarnings.length > 0 && (
+        <div className="p-3.5 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50/80 dark:bg-amber-950/40 flex items-start gap-3 text-xs shadow-2xs">
+          <Zap className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <span className="font-bold text-amber-900 dark:text-amber-200">
+              Knowledge Graph Advisory:
+            </span>{" "}
+            <span className="text-amber-800 dark:text-amber-300">
+              This lesson builds upon foundational skills:{" "}
+              <strong>{prereqWarnings.map((w: any) => w.name).join(", ")}</strong>. Review these concepts if you encounter blockers with today&apos;s drills.
+            </span>
+          </div>
+        </div>
+      )}
 
 
 

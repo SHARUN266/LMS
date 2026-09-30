@@ -215,6 +215,7 @@ async function main() {
       }
 
       // Format comprehensive Lesson Markdown content
+      const ytQuery = `${dayData.title} Analytics Masterclass`;
       const lessonContent = `# ${dayData.title}
 
 > **12 LPA Industry Readiness Track** • Target Salary: ₹12,00,000+ PA • Tier-1 Product & Consulting Standards
@@ -226,76 +227,51 @@ ${dayData.objective}
 
 ---
 
-## 🏢 Real-World Company Production Case Study
-In top tier companies (Swiggy, Zepto, Razorpay, Netflix, Uber, Stripe), analysts and analytics engineers are evaluated on their ability to solve business problems with mathematically sound, performant, and reproducible solutions.
-
-### Business Context & Problem Statement
-${dayData.practiceProblem}
-
-### Key Mathematical & Architectural Formulas
-- **Metric Integrity:** Ensure that duplicate rows caused by one-to-many joins do not artificially inflate financial metrics.
-- **Performance Execution Plan:** Optimize query execution using partition pruning, window framing, and selective predicate pushdown.
-- **Executive Translation:** Present analytical findings using the Minto Pyramid Principle—lead with the actionable recommendation, supported by grouped MECE data evidence.
+## 🧠 JavaScript Developer Mental Model Bridge
+Coming from JavaScript, analytical workflows map directly to familiar programming paradigms. 
+Explore the inline code drills or consult Axiom Copilot for real-time guidance tailored to your background.
 
 ---
 
-## ⚡ Technical Concept Deep-Dive & Best Practices
-1. **Always Verify Cardinality:** Before joining transactional tables with dimension tables, verify whether the relationship is 1:1, 1:N, or M:N.
-2. **Defensive Analytical Coding:** Never assume foreign keys are clean in production event streams. Always handle \`NULL\` keys and missing dimensions gracefully.
-3. **Reproducibility:** Write self-documenting code with clear Common Table Expressions (CTEs) rather than deeply nested unreadable subqueries.
-
----
-
-## 📺 Today's Curated Video Masterclass & YouTube Study Guide
-- **Target YouTube Search:** \`${dayData.youtubeQuery}\`
-- **Recommended Channels:** Ankit Bansal, Alex The Analyst, Maven Analytics, Corey Schafer, Guy in a Cube
+## 📺 Recommended Masterclass Video Search
+- **Target Search Query:** \`${ytQuery}\`
+- **Recommended Channels:** Leila Gharani, Chandoo, Alex The Analyst, Ankit Bansal, Kevin Stratvert
 `;
 
-      const cheatSheet = `/* 12 LPA Quick Reference CheatSheet: Day ${dayData.dayNumber} */
--- Master Query Template:
-WITH filtered_events AS (
-  SELECT id, customer_id, order_date, total_amount
-  FROM orders
-  WHERE status = 'COMPLETED'
-),
-windowed_metrics AS (
-  SELECT customer_id, order_date, total_amount,
-         SUM(total_amount) OVER (PARTITION BY customer_id ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as cumulative_revenue,
-         DENSE_RANK() OVER (PARTITION BY customer_id ORDER BY total_amount DESC) as spend_rank
-  FROM filtered_events
-)
-SELECT * FROM windowed_metrics WHERE spend_rank <= 3;`;
+      const cheatSheet = `/* 12 LPA Quick Reference: Day ${dayData.dayNumber} */
+-- Focus Area: ${dayData.title}
+-- Core Objective: ${dayData.objective}`;
 
       const quickQuiz = JSON.stringify([
         {
-          q: `What is the primary danger when joining orders (1 row per order) with order_items (N rows per order) and computing SUM(orders.total_amount)?`,
+          question: `What is the primary industry objective of ${dayData.title}?`,
           options: [
-            "SQL syntax error will occur",
-            "Fan-out multiplication will inflate the total amount by N times",
-            "Order dates will be nullified",
-            "No difference in output"
+            dayData.objective,
+            "To memorize syntax without understanding business impact",
+            "To replace relational databases with unorganized text files",
+            "To bypass all data validation rules"
           ],
-          answer: 1,
-          explanation: "Joining 1:N multiplies the parent rows for every matching child item, causing SUM() to calculate multiples of the order total. Always pre-aggregate child tables before joining."
-        },
-        {
-          q: `Which SQL clause allows calculating a rolling 30-day sum without collapsing individual transaction rows?`,
-          options: [
-            "GROUP BY with HAVING",
-            "SUM() OVER (PARTITION BY ... ORDER BY ...)",
-            "UNION ALL",
-            "CROSS JOIN"
-          ],
-          answer: 1,
-          explanation: "Window functions (OVER clause) compute analytical aggregations across a partition while preserving individual record granularity."
+          correctAnswer: dayData.objective,
+          explanation: `In tier-1 GCCs and Big 4 consulting, mastering ${dayData.title} ensures mathematical rigor and reproducible business outcomes.`
         }
       ]);
 
       const resources = JSON.stringify({
-        query: dayData.youtubeQuery,
-        url: dayData.youtubeUrl,
-        videos: dayData.videos,
-        checklist: dayData.checklist,
+        query: ytQuery,
+        url: `https://www.youtube.com/results?search_query=${encodeURIComponent(ytQuery)}`,
+        videos: [
+          {
+            title: `${dayData.title} Masterclass`,
+            channel: "Curated Industry Guide",
+            duration: "20 mins",
+            url: `https://www.youtube.com/results?search_query=${encodeURIComponent(ytQuery)}`
+          }
+        ],
+        checklist: [
+          `Internalize core mechanics of ${dayData.title.split(":")[1]?.trim() || dayData.title}.`,
+          "Complete hands-on sandbox practice drill with zero syntax errors.",
+          "Submit graded assignment and verify rubric score."
+        ],
       });
 
       // Create Lesson
@@ -306,7 +282,7 @@ SELECT * FROM windowed_metrics WHERE spend_rank <= 3;`;
           content: lessonContent,
           cheatSheet,
           quickQuiz,
-          videoSearchQuery: dayData.youtubeQuery,
+          videoSearchQuery: ytQuery,
           resources,
         },
       });
@@ -319,28 +295,28 @@ SELECT * FROM windowed_metrics WHERE spend_rank <= 3;`;
           order: 1,
           title: `Industry Drill: ${cleanTitle.substring(0, 45)}`,
           difficulty: "Intermediate",
-          problem: dayData.practiceProblem,
-          starterCode: dayData.practiceStarter,
+          problem: `Solve the foundational challenge for ${cleanTitle}:\n\n${dayData.objective}`,
+          starterCode: `-- Day ${dayData.dayNumber} Practice Sandbox\n-- Objective: ${dayData.objective}\n\nSELECT 1;`,
           sampleData: JSON.stringify({
             tables: ["customers", "orders", "order_items", "products"],
-            description: "Production e-commerce SQLite sandbox schema"
+            description: "Production SQLite sandbox schema"
           }),
-          solution: dayData.practiceSolution,
+          solution: `-- Ideal Solution for Day ${dayData.dayNumber}`,
           hints: JSON.stringify([
-            "Double-check join conditions to prevent fan-out row multiplication.",
-            "Group by distinct parent attributes before summing transactional amounts.",
-            "Use ORDER BY DESC on the calculated aggregate to prioritize top performers."
+            "Read the core objective carefully.",
+            "Verify all joins and aggregations defensively.",
+            "Test your solution against the sample tables."
           ]),
         },
       });
 
-      // Create Assignment (ONLY for Day 1 as immediate initial baseline; Days 2-66 are synthesized dynamically by AI when reached!)
+      // Create Assignment (Day 1 Excel Baseline; subsequent days synthesized adaptively)
       if (isDay1) {
         const assignment = await prisma.assignment.create({
           data: {
             dayId: day.id,
-            title: `Graded Mission: Multi-Table Joins & Fan-Out Traps`,
-            type: "SQL",
+            title: `Graded Mission: Advanced Lookups, Dynamic Arrays & Two-Way Matching`,
+            type: "EXCEL",
             description: `Production industry benchmark assignment evaluated against 12 LPA hiring rubrics.`,
             deadlineHours: 24,
             rubric: JSON.stringify({
@@ -356,13 +332,13 @@ SELECT * FROM windowed_metrics WHERE spend_rank <= 3;`;
           data: {
             assignmentId: assignment.id,
             order: 1,
-            category: "SQL",
-            prompt: `You are an Analytics Engineer at Swiggy. Write an analytical query joining customers, orders, and order_items that computes each customer's total expenditure, distinct completed orders count, and average ticket size. Ensure cancelled orders do not inflate revenue and prevent fan-out duplication.`,
-            starterCode: `-- Day 1 Graded Assignment: Multi-Table Aggregation\nSELECT c.id, c.name, COUNT(DISTINCT o.id) as orders_count\nFROM customers c\nLEFT JOIN orders o ON c.id = o.customer_id\nGROUP BY c.id, c.name;`,
+            category: "EXCEL",
+            prompt: `You are an Analytics Specialist at Amazon Global Logistics. Build a resilient dynamic lookup model matching products and calculating line-item profits without brittle VLOOKUP. Extract Tier-1 orders using FILTER() and compute segment revenue with SUMIFS.`,
+            starterCode: `/* Day 1 Excel Graded Mission: Advanced Lookups */\n// Formula 1: =XLOOKUP(Target_SKU, SKU_Range, Return_Range, "Unknown SKU")\n// Formula 2: =FILTER(Orders_Range, (Tier_Range="Tier 1") * (Quantity_Range>=50))\n// Formula 3: =SUMIFS(Amount_Range, Region_Range, "North", Tier_Range, "Tier 1")`,
             sampleData: JSON.stringify({ tables: ["customers", "orders", "order_items", "products"] }),
             weight: 100,
             isAdaptive: true,
-            adaptiveReason: "Foundational 12 LPA baseline: Multi-table join integrity & fan-out prevention.",
+            adaptiveReason: `Foundational 12 LPA benchmark: Day 1 Excel Core Competency Evaluation.`,
           },
         });
       }

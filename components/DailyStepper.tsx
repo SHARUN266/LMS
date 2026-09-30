@@ -2,11 +2,11 @@
 
 import React from "react";
 import Link from "next/link";
-import { BookOpen, Code2, FileCheck2, Award, CheckCircle2 } from "lucide-react";
+import { BookOpen, Code2, FileCheck2, Award, CheckCircle2, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DailyStepperProps {
-  currentStep: 1 | 2 | 3 | 4;
+  currentStep: 1 | 2 | 3 | 4 | 5;
   dayNumber: number;
   dayId?: string;
   moduleId?: string;
@@ -29,7 +29,7 @@ export function DailyStepper({
       step: 1,
       name: "Concept Theory",
       shortName: "Theory",
-      desc: "Notes & Micro-quiz",
+      desc: "Video & Cheatsheet",
       icon: BookOpen,
       href: `/learn/${moduleId}/${dayId}`,
     },
@@ -37,12 +37,20 @@ export function DailyStepper({
       step: 2,
       name: "Hands-on Practice",
       shortName: "Practice",
-      desc: "SQL Drills & Hints",
+      desc: "SQL/Python Drills",
       icon: Code2,
       href: `/practice/${dayId}`,
     },
     {
       step: 3,
+      name: "Daily POTD",
+      shortName: "POTD",
+      desc: "Problem Solving",
+      icon: Flame,
+      href: `/daily-challenge?dayNumber=${dayNumber}`,
+    },
+    {
+      step: 4,
       name: "Graded Assignment",
       shortName: "Assignment",
       desc: "Strict Rubric Exam",
@@ -50,8 +58,8 @@ export function DailyStepper({
       href: `/assignment/${assignmentId || `daily-${dayNumber}`}`,
     },
     {
-      step: 4,
-      name: "Evaluation & Scorecard",
+      step: 5,
+      name: "Evaluation",
       shortName: "Scorecard",
       desc: "Feedback & Next Day",
       icon: Award,
@@ -76,11 +84,11 @@ export function DailyStepper({
           </span>
         </div>
         <div className="text-xs text-muted-foreground font-medium">
-          Step <span className="font-bold text-foreground">{currentStep}</span> of 4
+          Step <span className="font-bold text-foreground">{currentStep}</span> of 5
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 relative">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 relative">
         {steps.map((s) => {
           const isCompleted = s.step < currentStep;
           const isCurrent = s.step === currentStep;

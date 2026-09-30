@@ -6,22 +6,12 @@ import { usePathname } from "next/navigation";
 import {
   Home,
   BookOpen,
-  Code2,
-  FileCheck2,
-  Award,
-  BarChart3,
-  Bot,
-  Settings,
-  Flame,
-  Plus,
-  ChevronRight,
-  PanelLeftClose,
-  PanelLeft,
   Map,
   CalendarCheck,
   Briefcase,
-  AlertTriangle,
-  Sparkles,
+  ChevronRight,
+  PanelLeftClose,
+  PanelLeft,
 } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
@@ -34,38 +24,25 @@ interface AppShellProps {
   children: ReactNode;
 }
 
-// Primary: Daily workflow (what to do today)
-const PRIMARY_NAV = [
+// 5 Core Focused Navigation Items for 12 LPA Track
+const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: Home },
-  { label: "Daily POTD", href: "/daily-challenge", icon: Flame },
-  { label: "Today's Lesson", href: "/learn", icon: BookOpen },
-  { label: "Practice Sandbox", href: "/practice", icon: Code2 },
-  { label: "Assignment", href: "/assignment", icon: FileCheck2 },
-  { label: "Scorecard", href: "/evaluation", icon: Award },
-];
-
-// Secondary: Tools & extras (separated visually)
-const SECONDARY_NAV = [
   { label: "Curriculum Roadmap", href: "/roadmap", icon: Map },
-  { label: "AI Course Studio", href: "/admin/studio", icon: Sparkles },
-  { label: "Analytics", href: "/dashboard#analytics", icon: BarChart3 },
-  { label: "Axiom Copilot", href: "/mentor", icon: Bot },
-  { label: "Weekly Assessment", href: "/assessment", icon: CalendarCheck },
-  { label: "Capstone Project", href: "/projects", icon: Briefcase },
-  { label: "Remedial Backlog", href: "/backlog", icon: AlertTriangle },
+  { label: "Today's Mission", href: "/learn", icon: BookOpen },
+  { label: "Monday Evaluation", href: "/assessment", icon: CalendarCheck },
+  { label: "Capstone Projects", href: "/projects", icon: Briefcase },
 ];
 
 function getBreadcrumb(pathname: string): string[] {
   const segments = pathname.split("/").filter(Boolean);
   if (segments.length === 0) return ["Dashboard"];
 
-  const allNav = [...PRIMARY_NAV, ...SECONDARY_NAV];
-  const match = allNav.find(
+  const match = NAV_ITEMS.find(
     (item) =>
       pathname === item.href ||
       (item.href !== "/dashboard" && pathname.startsWith(item.href))
   );
-  if (match) return ["Praxis OS", match.label];
+  if (match) return ["12 LPA Track", match.label];
   return segments.map((s) =>
     s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
   );
@@ -197,38 +174,13 @@ export function AppShell({ children }: AppShellProps) {
           {isExpanded && (
             <div className="px-2.5 pt-2 pb-1">
               <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                Daily Workflow
+                Bootcamp Navigation
               </span>
             </div>
           )}
 
-          <nav className="w-full space-y-0.5">
-            {PRIMARY_NAV.map((item) => (
-              <NavItem
-                key={item.label}
-                item={item}
-                isActive={isRouteActive(item.href)}
-                isExpanded={isExpanded}
-              />
-            ))}
-          </nav>
-
-          {/* Separator */}
-          <div className="px-2 py-1.5">
-            <Separator className="bg-slate-100" />
-          </div>
-
-          {/* Section: Tools & Explore */}
-          {isExpanded && (
-            <div className="px-2.5 pb-1">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                Tools & Explore
-              </span>
-            </div>
-          )}
-
-          <nav className="w-full space-y-0.5">
-            {SECONDARY_NAV.map((item) => (
+          <nav className="w-full space-y-1">
+            {NAV_ITEMS.map((item) => (
               <NavItem
                 key={item.label}
                 item={item}
@@ -239,108 +191,37 @@ export function AppShell({ children }: AppShellProps) {
           </nav>
         </div>
 
-        {/* Bottom Rail Actions: Fixed footer with responsive expanded and collapsed modes */}
+        {/* Bottom Rail: Clean Student Profile */}
         <div className="flex-shrink-0 pt-2.5 mt-auto border-t border-slate-100">
           {isExpanded ? (
             <div className="flex flex-col space-y-2">
-              {/* Quick Create + Button */}
-              <Link
-                href="/practice"
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-sm shadow-indigo-600/20"
-              >
-                <Plus className="w-4 h-4 stroke-[2.5]" />
-                <span>Quick Sandbox</span>
-              </Link>
-
-              {/* Active Flame Streak Badge */}
-              <Link
-                href="/daily-challenge"
-                className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 hover:bg-amber-500/15 transition-colors"
-              >
-                <span className="flex items-center gap-1.5 text-xs font-bold">
-                  <Flame className="w-4 h-4 fill-amber-500 text-amber-500" />
-                  <span>Daily Streak</span>
-                </span>
-                <span className="text-[11px] font-black text-amber-600 bg-amber-500/20 px-2 py-0.5 rounded-md">
-                  Active 🔥
-                </span>
-              </Link>
-
-              {/* User Profile & Settings */}
-              <div className="w-full flex items-center justify-between p-1.5 rounded-xl bg-slate-50 border border-slate-100">
-                <div className="flex items-center gap-2 min-w-0">
+              <div className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100">
+                <div className="flex items-center gap-2.5 min-w-0">
                   <div className="relative flex-shrink-0">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-amber-500 text-slate-900 font-black text-xs flex items-center justify-center shadow-xs">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-indigo-700 text-white font-black text-xs flex items-center justify-center shadow-xs">
                       SK
                     </div>
                     <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border-2 border-white rounded-full" />
                   </div>
                   <div className="min-w-0 text-left">
                     <p className="text-xs font-bold text-slate-800 truncate leading-tight">Sharun</p>
-                    <p className="text-[10px] font-medium text-slate-400 truncate">12 LPA Track</p>
+                    <p className="text-[10px] font-medium text-slate-400 truncate">12 LPA Track Candidate</p>
                   </div>
                 </div>
-                <Link
-                  href="/admin/studio"
-                  title="Settings & Studio"
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors flex-shrink-0"
-                >
-                  <Settings className="w-4 h-4" />
-                </Link>
               </div>
             </div>
           ) : (
-            <div className="w-full flex flex-col items-center space-y-2">
-              {/* Quick Create + Button */}
+            <div className="w-full flex flex-col items-center">
               <Tooltip>
                 <TooltipTrigger>
-                  <Link
-                    href="/practice"
-                    className="w-9 h-9 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center transition-all hover:scale-105 shadow-md shadow-indigo-600/25"
-                  >
-                    <Plus className="w-4 h-4 stroke-[2.5]" />
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right">Quick Code Sandbox</TooltipContent>
-              </Tooltip>
-
-              {/* Active Flame Streak Badge */}
-              <Tooltip>
-                <TooltipTrigger>
-                  <Link
-                    href="/daily-challenge"
-                    className="w-9 h-9 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center cursor-pointer hover:bg-amber-500/20 transition-colors"
-                  >
-                    <Flame className="w-4 h-4 fill-amber-500" />
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right">Daily POTD & Streak 🔥</TooltipContent>
-              </Tooltip>
-
-              {/* Settings */}
-              <Tooltip>
-                <TooltipTrigger>
-                  <Link
-                    href="/admin/studio"
-                    className="w-9 h-9 rounded-2xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors"
-                  >
-                    <Settings className="w-4 h-4" />
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right">Settings & Studio</TooltipContent>
-              </Tooltip>
-
-              {/* User Profile Initials Avatar */}
-              <Tooltip>
-                <TooltipTrigger>
-                  <div className="relative cursor-pointer pt-0.5">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-amber-400 to-amber-500 text-slate-900 font-black text-xs flex items-center justify-center shadow-sm">
+                  <div className="relative cursor-pointer">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-indigo-700 text-white font-black text-xs flex items-center justify-center shadow-xs">
                       SK
                     </div>
-                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />
+                    <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border-2 border-white rounded-full" />
                   </div>
                 </TooltipTrigger>
-                <TooltipContent side="right">Sharun (Online)</TooltipContent>
+                <TooltipContent side="right">Sharun (12 LPA Track)</TooltipContent>
               </Tooltip>
             </div>
           )}

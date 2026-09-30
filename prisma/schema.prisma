@@ -22,6 +22,8 @@ model UserProfile {
   experienceLevel String   @default("Beginner-Intermediate")
   xp              Int      @default(150)
   level           Int      @default(1)
+  eloRating       Int      @default(1200)
+  modalityPreference String @default("VIDEO_CODE")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -75,7 +77,41 @@ model Day {
   lesson      Lesson?
   practice    PracticeExercise[]
   assignments Assignment[]
+  skills      Skill[]
   createdAt   DateTime           @default(now())
+}
+
+model Skill {
+  id            String      @id @default(cuid())
+  slug          String      @unique
+  name          String
+  category      String      @default("SQL")
+  bloomLevel    Int         @default(2) // 1=Remember, 2=Understand, 3=Apply, 4=Analyze, 5=Evaluate, 6=Create
+  dayId         String?
+  day           Day?        @relation(fields: [dayId], references: [id], onDelete: SetNull)
+  prerequisites SkillEdge[] @relation("EdgeTo")
+  dependents    SkillEdge[] @relation("EdgeFrom")
+  masteryScore  Float       @default(0.0) // 0.0 to 1.0 (Bayesian posterior)
+  eloRating     Int         @default(1200)
+  lastPracticed DateTime?
+  nextReviewAt  DateTime?
+  easeFactor    Float       @default(2.5) // SM-2 ease factor
+  interval      Int         @default(1)   // days
+  repetitions   Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model SkillEdge {
+  id          String   @id @default(cuid())
+  fromSkillId String
+  toSkillId   String
+  fromSkill   Skill    @relation("EdgeFrom", fields: [fromSkillId], references: [id], onDelete: Cascade)
+  toSkill     Skill    @relation("EdgeTo", fields: [toSkillId], references: [id], onDelete: Cascade)
+  weight      Float    @default(1.0)
+  createdAt   DateTime @default(now())
+
+  @@unique([fromSkillId, toSkillId])
 }
 
 model Lesson {
@@ -362,5 +398,13 @@ model Employee {
   hireDate   String? @map("hire_date")
 
   @@map("employees")
+}
+
+model DailyPotdCache {
+  dateKey   String @id @map("date_key")
+  potdJson  String @map("potd_json")
+  createdAt String @map("created_at")
+
+  @@map("daily_potd_cache")
 }
 
