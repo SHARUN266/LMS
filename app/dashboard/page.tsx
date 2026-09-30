@@ -22,7 +22,6 @@ import {
 } from "lucide-react";
 import { getWorkflowState } from "@/lib/workflow";
 import { getAnalyticsData } from "@/lib/analytics";
-import { getTodayPOTD, hasSolvedTodayPOTD } from "@/lib/potd";
 import { MissionHeroCard } from "@/components/dashboard/MissionHeroCard";
 import { DashboardAnalyticsSection } from "@/components/dashboard/DashboardAnalyticsSection";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,13 +32,10 @@ import { Separator } from "@/components/ui/separator";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const [wf, analytics, potd] = await Promise.all([
+  const [wf, analytics] = await Promise.all([
     getWorkflowState(),
     getAnalyticsData(),
-    getTodayPOTD(),
   ]);
-
-  const hasSolvedPOTD = await hasSolvedTodayPOTD(potd.dateKey);
 
   // Dynamic greeting based on time of day
   const hours = new Date().getHours();
@@ -102,67 +98,6 @@ export default async function DashboardPage() {
         backlogCount={wf.backlogCount}
         hasBacklog={wf.hasBacklog}
       />
-
-      {/* ═════════════════════════════════════════════════════ */}
-      {/* MASAI DUAL-TRACK: Daily Foundation Track (POTD)      */}
-      {/* ═════════════════════════════════════════════════════ */}
-      <div className="p-4 sm:p-5 rounded-2xl border border-border/80 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-md relative overflow-hidden">
-        {/* Soft background watermark */}
-        <div className="absolute right-0 top-0 bottom-0 w-80 opacity-10 pointer-events-none bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-amber-400 via-rose-500 to-transparent" />
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
-          <div className="space-y-1.5 max-w-xl">
-            <div className="flex items-center flex-wrap gap-2">
-              <span className="px-2 py-0.5 rounded text-[10px] uppercase font-black bg-masai-red text-white flex items-center gap-1 shadow-2xs">
-                <Flame className="w-3 h-3 fill-current" /> Dual-Track Foundation
-              </span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/10 text-indigo-200 border border-white/10">
-                {potd.company}
-              </span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                {potd.difficulty}
-              </span>
-              {hasSolvedPOTD ? (
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 flex items-center gap-1">
-                  ✓ Solved Today (+50 XP)
-                </span>
-              ) : (
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
-                  🔒 Mandatory Gate: Must solve to unlock Next Day
-                </span>
-              )}
-            </div>
-
-            <h3 className="text-base font-extrabold text-white tracking-tight">
-              Problem of the Day: {potd.title}
-            </h3>
-
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Masai dual-track system keeps your problem-solving sharp with a daily standalone interview challenge running side-by-side with your curriculum module.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <div className="text-right hidden sm:block">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Daily Reward</span>
-              <span className="text-xs font-black text-amber-400 flex items-center gap-1 justify-end">
-                <Zap className="w-3.5 h-3.5 fill-amber-400" /> +50 XP
-              </span>
-            </div>
-
-            <Link
-              href="/daily-challenge"
-              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 ${
-                hasSolvedPOTD
-                  ? "bg-white/15 hover:bg-white/20 text-white border border-white/20"
-                  : "bg-masai-red hover:bg-masai-red/90 text-white"
-              }`}
-            >
-              <span>{hasSolvedPOTD ? "Review Today's POTD" : "Solve Today's POTD →"}</span>
-            </Link>
-          </div>
-        </div>
-      </div>
 
       {/* ═══════════════════════════════════════════ */}
       {/* Quick Navigation Row                         */}
