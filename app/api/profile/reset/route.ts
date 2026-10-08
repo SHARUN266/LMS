@@ -77,10 +77,11 @@ export async function POST() {
       });
     }
 
-    // 8. Clear mentor session messages if any
+    // 8. Clear mentor session messages and POTD cache if any
     try {
       await db.mentorMessage.deleteMany();
       await db.mentorSession.deleteMany();
+      await db.dailyPotdCache.deleteMany();
     } catch {}
 
     return NextResponse.json({
