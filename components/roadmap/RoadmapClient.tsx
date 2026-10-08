@@ -893,7 +893,7 @@ function ModuleDetailSection({
       </div>
 
       {/* Day-by-Day Vertical Roadmap Timeline */}
-      <div className="relative pl-6 space-y-3.5 before:absolute before:left-3 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200">
+      <div className="relative pl-8 space-y-3.5 before:absolute before:left-4 before:top-3 before:bottom-3 before:w-0.5 before:-translate-x-1/2 before:bg-slate-200">
         {mod.days.map((d) => {
           const isCompleted = d.isCompleted;
           const isCurrent = !isCompleted && d.isUnlocked && (activeDayNumber ? d.dayNumber === activeDayNumber : d.dayNumber === 2);
@@ -903,7 +903,7 @@ function ModuleDetailSection({
             <div key={d.id || d.dayNumber} className="relative group">
               {/* Node Icon */}
               <div
-                className={`absolute -left-6 top-3.5 w-6 h-6 rounded-full flex items-center justify-center text-xs -translate-x-1/2 transition-transform ${
+                className={`absolute -left-4 top-3.5 w-6 h-6 rounded-full flex items-center justify-center text-xs -translate-x-1/2 transition-transform ${
                   isCompleted
                     ? "bg-emerald-500 text-white ring-4 ring-background"
                     : isCurrent
