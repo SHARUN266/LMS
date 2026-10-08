@@ -26,12 +26,10 @@ export async function POST() {
       },
     });
 
-    // 4. Clear study sessions and backlog drills
+    // 4. Clear study sessions, backlog items, and remedial drills
     await db.studySession.deleteMany();
     await db.backlogItem.deleteMany();
-    await db.remedialDrill.updateMany({
-      data: { isCompleted: false },
-    });
+    await db.remedialDrill.deleteMany();
 
     // 5. Reset Skills mastery scores and ELO ratings
     await db.skill.updateMany({
