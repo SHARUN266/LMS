@@ -14,7 +14,6 @@ import {
   PanelLeft,
   Settings,
 } from "lucide-react";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -61,9 +60,10 @@ function NavItem({
 }) {
   const Icon = item.icon;
 
-  const linkContent = (
+  return (
     <Link
       href={item.href}
+      title={!isExpanded ? item.label : undefined}
       className={cn(
         "flex items-center rounded-xl text-xs font-semibold transition-all group",
         isExpanded ? "gap-3 px-2.5 py-2 w-full" : "w-9 h-9 mx-auto justify-center",
@@ -85,17 +85,6 @@ function NavItem({
       )}
     </Link>
   );
-
-  if (!isExpanded) {
-    return (
-      <Tooltip>
-        <TooltipTrigger>{linkContent}</TooltipTrigger>
-        <TooltipContent side="right">{item.label}</TooltipContent>
-      </Tooltip>
-    );
-  }
-
-  return linkContent;
 }
 
 export function AppShell({ children }: AppShellProps) {
@@ -105,9 +94,11 @@ export function AppShell({ children }: AppShellProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [profileName, setProfileName] = useState("Sharun");
   const [profileRole, setProfileRole] = useState("12 LPA Track Candidate");
+  const [mounted, setMounted] = useState(false);
   const breadcrumb = getBreadcrumb(pathname);
 
   useEffect(() => {
+    setMounted(true);
     try {
       const saved = localStorage.getItem("lms_sidebar_pinned");
       if (saved !== null) {
@@ -244,22 +235,17 @@ export function AppShell({ children }: AppShellProps) {
             </div>
           ) : (
             <div className="w-full flex flex-col items-center">
-              <Tooltip>
-                <TooltipTrigger>
-                  <button
-                    type="button"
-                    onClick={() => setIsSettingsOpen(true)}
-                    className="relative cursor-pointer hover:scale-105 transition-transform"
-                    title="Open Settings"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-indigo-700 text-white font-black text-xs flex items-center justify-center shadow-xs">
-                      {profileName.slice(0, 2).toUpperCase() || "SK"}
-                    </div>
-                    <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border-2 border-white rounded-full" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="right">Settings ({profileName})</TooltipContent>
-              </Tooltip>
+              <button
+                type="button"
+                onClick={() => setIsSettingsOpen(true)}
+                className="relative cursor-pointer hover:scale-105 transition-transform"
+                title={`Settings (${profileName})`}
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-indigo-700 text-white font-black text-xs flex items-center justify-center shadow-xs">
+                  {profileName.slice(0, 2).toUpperCase() || "SK"}
+                </div>
+                <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border-2 border-white rounded-full" />
+              </button>
             </div>
           )}
         </div>

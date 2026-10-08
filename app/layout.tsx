@@ -15,7 +15,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="overflow-hidden bg-[#f8fafc] text-slate-900">
+      <body className="overflow-hidden bg-[#f8fafc] text-slate-900" suppressHydrationWarning>
         <TooltipProvider delay={200}>
           <AppShell>{children}</AppShell>
         </TooltipProvider>
