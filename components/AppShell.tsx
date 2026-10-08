@@ -12,6 +12,7 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeft,
+  Settings,
 } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
@@ -19,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { StudyTimer } from "./StudyTimer";
 import { AIStatusBadge } from "./AIStatusBadge";
+import { SettingsModal } from "./SettingsModal";
 
 interface AppShellProps {
   children: ReactNode;
@@ -100,6 +102,9 @@ export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const [isPinned, setIsPinned] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [profileName, setProfileName] = useState("Sharun");
+  const [profileRole, setProfileRole] = useState("12 LPA Track Candidate");
   const breadcrumb = getBreadcrumb(pathname);
 
   useEffect(() => {
@@ -109,6 +114,19 @@ export function AppShell({ children }: AppShellProps) {
         setIsPinned(saved === "true");
       }
     } catch {}
+
+    // Fetch user profile info for sidebar
+    fetch("/api/profile")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.profile?.name) {
+          setProfileName(data.profile.name);
+        }
+        if (data?.profile?.targetRole) {
+          setProfileRole(data.profile.targetRole);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const togglePin = () => {
@@ -191,37 +209,56 @@ export function AppShell({ children }: AppShellProps) {
           </nav>
         </div>
 
-        {/* Bottom Rail: Clean Student Profile */}
+        {/* Bottom Rail: Clean Student Profile with Settings */}
         <div className="flex-shrink-0 pt-2.5 mt-auto border-t border-slate-100">
           {isExpanded ? (
             <div className="flex flex-col space-y-2">
-              <div className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100">
-                <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-full flex items-center justify-between p-1.5 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100/70 transition-colors">
+                <button
+                  type="button"
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="flex items-center gap-2.5 min-w-0 text-left flex-1 px-1 py-0.5 rounded-lg hover:opacity-90 transition-opacity"
+                  title="Open Profile Settings"
+                >
                   <div className="relative flex-shrink-0">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-indigo-700 text-white font-black text-xs flex items-center justify-center shadow-xs">
-                      SK
+                      {profileName.slice(0, 2).toUpperCase() || "SK"}
                     </div>
                     <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border-2 border-white rounded-full" />
                   </div>
-                  <div className="min-w-0 text-left">
-                    <p className="text-xs font-bold text-slate-800 truncate leading-tight">Sharun</p>
-                    <p className="text-[10px] font-medium text-slate-400 truncate">12 LPA Track Candidate</p>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-800 truncate leading-tight">{profileName}</p>
+                    <p className="text-[10px] font-medium text-slate-400 truncate">{profileRole}</p>
                   </div>
-                </div>
+                </button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setIsSettingsOpen(true)}
+                  title="Settings & Preferences"
+                  className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 h-7 w-7 rounded-lg flex-shrink-0"
+                >
+                  <Settings className="w-3.5 h-3.5" />
+                </Button>
               </div>
             </div>
           ) : (
             <div className="w-full flex flex-col items-center">
               <Tooltip>
                 <TooltipTrigger>
-                  <div className="relative cursor-pointer">
+                  <button
+                    type="button"
+                    onClick={() => setIsSettingsOpen(true)}
+                    className="relative cursor-pointer hover:scale-105 transition-transform"
+                    title="Open Settings"
+                  >
                     <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-indigo-700 text-white font-black text-xs flex items-center justify-center shadow-xs">
-                      SK
+                      {profileName.slice(0, 2).toUpperCase() || "SK"}
                     </div>
                     <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border-2 border-white rounded-full" />
-                  </div>
+                  </button>
                 </TooltipTrigger>
-                <TooltipContent side="right">Sharun (12 LPA Track)</TooltipContent>
+                <TooltipContent side="right">Settings ({profileName})</TooltipContent>
               </Tooltip>
             </div>
           )}
@@ -277,6 +314,16 @@ export function AppShell({ children }: AppShellProps) {
           {children}
         </main>
       </div>
+
+      {/* Global Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        onProfileUpdated={(updatedName, updatedRole) => {
+          setProfileName(updatedName);
+          setProfileRole(updatedRole);
+        }}
+      />
     </div>
   );
 }
