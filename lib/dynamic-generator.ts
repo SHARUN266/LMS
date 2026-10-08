@@ -5,45 +5,248 @@ import { detectWeakTopics } from "@/lib/adaptive";
 export type AssignmentModality =
   | "SQL"
   | "PYTHON"
-  | "API"
+  | "EXCEL"
   | "POWER_BI"
   | "BRD"
   | "PROMPT_ENG"
-  | "AI_PRD"
   | "COMPLIANCE"
-  | "CHANGE_MGMT"
   | "PRODUCT_ANALYTICS"
-  | "CONSULTING_CASE";
+  | "CONSULTING_CASE"
+  | "DBT_GIT"
+  | "CLOUD_ARCHITECTURE"
+  | "AUTOMATION"
+  | "STATISTICS"
+  | "INTERVIEW_PREP";
 
 /**
- * Maps each module order (1-11) to its primary technical and business modality.
+ * Submission types a learner can provide back to the platform.
+ */
+export type SubmissionType =
+  | "CODE_EDITOR"       // Monaco in-platform (SQL, DAX text, prompts, docs)
+  | "FILE_UPLOAD"       // .xlsx, .pbix, .ipynb, .pdf, .zip
+  | "URL_LINK"          // GitHub repo, Colab notebook, Power BI published dashboard
+  | "SCREENSHOT"        // Image proof of external tool work
+  | "TEXT_SUMMARY";     // Architectural/methodology explanation
+
+/**
+ * Tool guidance metadata for each modality — drives the 5 clarity blocks in the UI.
+ */
+export interface ToolGuidance {
+  primaryTool: string;
+  toolIcon: string;
+  toolColor: string;
+  worksInPlatform: boolean;
+  externalToolUrl?: string;
+  externalToolSetup?: string;
+  submissionTypes: SubmissionType[];
+  evaluationMethod: string;
+  mandatoryFields: string[];    // What MUST be provided to submit
+  skillCategory: string;
+}
+
+/**
+ * Maps each curriculum module order (0-14) to its correct primary modality.
+ * MUST match the actual curriculum in curriculum-data.mjs.
  */
 export function getModuleModality(moduleOrder: number): AssignmentModality {
   switch (moduleOrder) {
-    case 1:
-      return "SQL";
-    case 2:
-      return "PYTHON";
-    case 3:
-      return "API";
-    case 4:
-      return "POWER_BI";
-    case 5:
-      return "BRD";
-    case 6:
-      return "PROMPT_ENG";
-    case 7:
-      return "AI_PRD";
-    case 8:
-      return "COMPLIANCE";
-    case 9:
-      return "CHANGE_MGMT";
-    case 10:
-      return "PRODUCT_ANALYTICS";
-    case 11:
-      return "CONSULTING_CASE";
+    case 0:  return "EXCEL";                // Module 0: Excel + Business Productivity
+    case 1:  return "SQL";                  // Module 1: Production SQL & Analytical Problem Solving
+    case 2:  return "SQL";                  // Module 2: Data Modeling & Data Warehousing (DDL + diagrams)
+    case 3:  return "POWER_BI";             // Module 3: Enterprise Power BI + Advanced DAX
+    case 4:  return "PYTHON";               // Module 4: Python for Analytics & Automation
+    case 5:  return "PYTHON";               // Module 5: ETL/ELT & Data Pipelines (Python-based)
+    case 6:  return "DBT_GIT";              // Module 6: Analytics Engineering with dbt
+    case 7:  return "PRODUCT_ANALYTICS";    // Module 7: Business & Product Analytics (SQL + Presentation)
+    case 8:  return "AUTOMATION";           // Module 8: Power Platform & Workflow Automation
+    case 9:  return "PROMPT_ENG";           // Module 9: AI for Analytics (Prompts + Python)
+    case 10: return "CLOUD_ARCHITECTURE";   // Module 10: Cloud & Modern Data Platforms
+    case 11: return "COMPLIANCE";           // Module 11: Data Governance, Quality & Security
+    case 12: return "BRD";                  // Module 12: Business Analysis & Stakeholder Engineering
+    case 13: return "STATISTICS";           // Module 13: Statistics, Experimentation & Commercial Analytics
+    case 14: return "INTERVIEW_PREP";       // Module 14: Big 4 Interview + Case Study + Job Engine
+    default: return "SQL";
+  }
+}
+
+/**
+ * Returns tool guidance for a given modality — tells the UI what tool learner should use,
+ * what they must submit, and how evaluation works. This powers the 5 clarity blocks.
+ */
+export function getToolGuidance(modality: AssignmentModality): ToolGuidance {
+  switch (modality) {
+    case "SQL":
+      return {
+        primaryTool: "Platform SQL Sandbox",
+        toolIcon: "database",
+        toolColor: "indigo",
+        worksInPlatform: true,
+        submissionTypes: ["CODE_EDITOR", "TEXT_SUMMARY"],
+        evaluationMethod: "Auto: SQL execution against sandbox + reference output comparison + AI rubric scoring",
+        mandatoryFields: ["code"],
+        skillCategory: "SQL & Data Analysis",
+      };
+    case "EXCEL":
+      return {
+        primaryTool: "Microsoft Excel / Google Sheets",
+        toolIcon: "table",
+        toolColor: "emerald",
+        worksInPlatform: false,
+        externalToolUrl: "https://docs.google.com/spreadsheets",
+        externalToolSetup: "Open Microsoft Excel or Google Sheets. Download the data template if provided, build your model, then upload the completed file.",
+        submissionTypes: ["FILE_UPLOAD", "SCREENSHOT", "TEXT_SUMMARY"],
+        evaluationMethod: "Auto: File uploaded + structure check • AI: Explanation quality review • Self-check: Dashboard rubric",
+        mandatoryFields: ["file", "screenshot", "explanation"],
+        skillCategory: "Excel & Business Productivity",
+      };
+    case "POWER_BI":
+      return {
+        primaryTool: "Power BI Desktop (Free Download)",
+        toolIcon: "bar-chart-3",
+        toolColor: "amber",
+        worksInPlatform: false,
+        externalToolUrl: "https://powerbi.microsoft.com/desktop/",
+        externalToolSetup: "Download Power BI Desktop (free) from Microsoft. Build your data model and dashboard, then submit your DAX measures, published URL, and dashboard screenshots.",
+        submissionTypes: ["CODE_EDITOR", "URL_LINK", "SCREENSHOT", "TEXT_SUMMARY"],
+        evaluationMethod: "Auto: DAX syntax validation + URL domain check • AI: Measure logic + explanation review • Self-check: Dashboard design rubric",
+        mandatoryFields: ["code", "screenshot", "explanation"],
+        skillCategory: "Power BI & DAX",
+      };
+    case "PYTHON":
+      return {
+        primaryTool: "Jupyter Notebook / Google Colab (Free)",
+        toolIcon: "code",
+        toolColor: "blue",
+        worksInPlatform: false,
+        externalToolUrl: "https://colab.research.google.com/",
+        externalToolSetup: "Open Google Colab (free, no install needed) or run Jupyter locally. Write and execute your pipeline, then submit the notebook link or file.",
+        submissionTypes: ["URL_LINK", "FILE_UPLOAD", "CODE_EDITOR", "TEXT_SUMMARY"],
+        evaluationMethod: "Auto: Notebook/link submitted + code structure analysis • AI: Pipeline logic + code quality review",
+        mandatoryFields: ["notebook_or_link", "explanation"],
+        skillCategory: "Python & Data Engineering",
+      };
+    case "DBT_GIT":
+      return {
+        primaryTool: "VS Code + dbt CLI + GitHub",
+        toolIcon: "git-branch",
+        toolColor: "purple",
+        worksInPlatform: false,
+        externalToolUrl: "https://github.com/new",
+        externalToolSetup: "Install dbt-core locally, create a GitHub repository, build your dbt project in VS Code, and push to GitHub.",
+        submissionTypes: ["URL_LINK", "SCREENSHOT", "TEXT_SUMMARY"],
+        evaluationMethod: "Auto: GitHub repo exists + README check + folder structure check • AI: Architecture + model quality review",
+        mandatoryFields: ["github_url", "explanation"],
+        skillCategory: "Analytics Engineering & dbt",
+      };
+    case "AUTOMATION":
+      return {
+        primaryTool: "Power Automate / n8n",
+        toolIcon: "workflow",
+        toolColor: "orange",
+        worksInPlatform: false,
+        externalToolUrl: "https://make.powerautomate.com/",
+        externalToolSetup: "Sign in to Power Automate (free Microsoft account) or use n8n. Build your automation flow, take screenshots of the completed workflow.",
+        submissionTypes: ["SCREENSHOT", "URL_LINK", "TEXT_SUMMARY"],
+        evaluationMethod: "Auto: Screenshots uploaded + URL check • AI: Workflow design + explanation review",
+        mandatoryFields: ["screenshot", "explanation"],
+        skillCategory: "Workflow Automation",
+      };
+    case "CLOUD_ARCHITECTURE":
+      return {
+        primaryTool: "Cloud Console (Snowflake / Azure Free Trial)",
+        toolIcon: "cloud",
+        toolColor: "cyan",
+        worksInPlatform: false,
+        externalToolUrl: "https://signup.snowflake.com/",
+        externalToolSetup: "Sign up for Snowflake free trial (30 days, no credit card). Complete the architecture tasks and capture screenshots of your work.",
+        submissionTypes: ["SCREENSHOT", "FILE_UPLOAD", "TEXT_SUMMARY"],
+        evaluationMethod: "Auto: Evidence uploaded • AI: Architecture document + explanation review",
+        mandatoryFields: ["screenshot_or_file", "explanation"],
+        skillCategory: "Cloud Data Platforms",
+      };
+    case "COMPLIANCE":
+      return {
+        primaryTool: "Platform SQL Sandbox + Document Editor",
+        toolIcon: "shield-check",
+        toolColor: "red",
+        worksInPlatform: true,
+        submissionTypes: ["CODE_EDITOR", "TEXT_SUMMARY"],
+        evaluationMethod: "Auto: SQL masking queries executed • AI: Compliance document + policy review",
+        mandatoryFields: ["code", "explanation"],
+        skillCategory: "Data Governance & Security",
+      };
+    case "BRD":
+      return {
+        primaryTool: "Platform Editor + Google Docs / draw.io",
+        toolIcon: "file-text",
+        toolColor: "slate",
+        worksInPlatform: true,
+        externalToolUrl: "https://app.diagrams.net/",
+        externalToolSetup: "Write your BRD/FRD in the platform editor. For BPMN diagrams, use draw.io (free) and upload the diagram as a screenshot.",
+        submissionTypes: ["CODE_EDITOR", "SCREENSHOT", "FILE_UPLOAD", "TEXT_SUMMARY"],
+        evaluationMethod: "Auto: Document structure check (headings, sections, length) • AI: Content quality + framework usage review",
+        mandatoryFields: ["document", "explanation"],
+        skillCategory: "Business Analysis",
+      };
+    case "PRODUCT_ANALYTICS":
+      return {
+        primaryTool: "Platform SQL Sandbox + Presentation Tool",
+        toolIcon: "trending-up",
+        toolColor: "violet",
+        worksInPlatform: true,
+        submissionTypes: ["CODE_EDITOR", "FILE_UPLOAD", "TEXT_SUMMARY"],
+        evaluationMethod: "Auto: SQL execution + result validation • AI: Analysis depth + business insight review",
+        mandatoryFields: ["code", "explanation"],
+        skillCategory: "Product & Business Analytics",
+      };
+    case "PROMPT_ENG":
+      return {
+        primaryTool: "Platform Editor + Jupyter / Google Colab",
+        toolIcon: "sparkles",
+        toolColor: "pink",
+        worksInPlatform: true,
+        externalToolUrl: "https://colab.research.google.com/",
+        externalToolSetup: "Design prompts in the platform editor. For RAG or API-calling tasks, use Google Colab to test.",
+        submissionTypes: ["CODE_EDITOR", "URL_LINK", "TEXT_SUMMARY"],
+        evaluationMethod: "Auto: Prompt structure check • AI: Prompt quality + output review",
+        mandatoryFields: ["code", "explanation"],
+        skillCategory: "AI & Prompt Engineering",
+      };
+    case "STATISTICS":
+      return {
+        primaryTool: "Jupyter / Google Colab + Excel",
+        toolIcon: "calculator",
+        toolColor: "teal",
+        worksInPlatform: false,
+        externalToolUrl: "https://colab.research.google.com/",
+        externalToolSetup: "Use Google Colab (free) or Jupyter to run statistical computations. Submit your notebook and explain your methodology.",
+        submissionTypes: ["URL_LINK", "FILE_UPLOAD", "CODE_EDITOR", "TEXT_SUMMARY"],
+        evaluationMethod: "Auto: Notebook/link submitted + structure check • AI: Statistical methodology + conclusion review",
+        mandatoryFields: ["notebook_or_link", "explanation"],
+        skillCategory: "Statistics & Experimentation",
+      };
+    case "INTERVIEW_PREP":
+      return {
+        primaryTool: "Platform SQL + Google Docs + GitHub",
+        toolIcon: "briefcase",
+        toolColor: "amber",
+        worksInPlatform: true,
+        submissionTypes: ["CODE_EDITOR", "URL_LINK", "FILE_UPLOAD", "TEXT_SUMMARY"],
+        evaluationMethod: "Auto: SQL execution • AI: Resume review + case answer quality + portfolio completeness",
+        mandatoryFields: ["code_or_file", "explanation"],
+        skillCategory: "Interview & Career Readiness",
+      };
     default:
-      return "SQL";
+      return {
+        primaryTool: "Platform SQL Sandbox",
+        toolIcon: "database",
+        toolColor: "indigo",
+        worksInPlatform: true,
+        submissionTypes: ["CODE_EDITOR"],
+        evaluationMethod: "Auto: SQL execution + AI rubric",
+        mandatoryFields: ["code"],
+        skillCategory: "Data Analytics",
+      };
   }
 }
 
@@ -158,6 +361,8 @@ Return ONLY valid JSON matching this exact schema:
   "description": string (Executive summary of the business situation in 2-3 sentences),
   "prompt": string (Comprehensive assignment mission with business context, explicit technical requirements, acceptance criteria, and edge cases),
   "starterCode": string (Starter template appropriate for the modality: SQL query template, Python snippet, JSON/cURL contract, DAX measure block, or structured Markdown BRD template),
+  "referenceSolution": string (The ideal gold-standard solution query, script, or model implementation that achieves a 100% score),
+  "skillsTested": string[] (Array of 3-4 specific analytical/technical competencies tested, e.g. ["XLOOKUP", "FILTER", "Dynamic Arrays"]),
   "rubric": {
     "correctness": number (e.g. 40),
     "edgeCases": number (e.g. 25),
@@ -197,11 +402,22 @@ Ensure the mission feels like a REAL task assigned by a VP of Engineering, Chief
           ? `-- Day ${day.dayNumber}: ${day.title}\n-- Target: ${randomCompany}\nSELECT * FROM orders LIMIT 10;`
           : modality === "PYTHON"
           ? `# Day ${day.dayNumber}: Python Pipeline\nimport pandas as pd\n\ndef run_pipeline():\n    pass`
-          : modality === "API"
-          ? `// REST API Payload Contract for ${randomCompany}\n{\n  "endpoint": "/api/v1/resource",\n  "method": "POST"\n}`
+          : modality === "EXCEL"
+          ? `/* Day ${day.dayNumber} Excel Graded Mission */\n// Formula 1: =XLOOKUP(Target_Cell, Lookup_Range, Return_Range, "Not Found")\n// Formula 2: =FILTER(Orders_Range, Condition_Range="Criteria")`
           : modality === "POWER_BI"
           ? `// DAX Measure Blueprint\nTotal Metric = SUM(FactSales[amount])`
           : `# Business Requirements Document (BRD)\n## Executive Summary\n\n## In-Scope vs Out-of-Scope\n\n## Acceptance Criteria (Gherkin BDD)`,
+      referenceSolution:
+        modality === "SQL"
+          ? `SELECT c.city, COUNT(DISTINCT o.id) AS total_orders, ROUND(SUM(o.total_amount), 2) AS total_revenue\nFROM customers c\nJOIN orders o ON c.id = o.customer_id\nWHERE o.status = 'COMPLETED'\nGROUP BY c.city\nHAVING COUNT(DISTINCT o.id) > 0\nORDER BY total_revenue DESC;`
+          : modality === "PYTHON"
+          ? `import pandas as pd\n\ndef run_pipeline(df: pd.DataFrame) -> pd.DataFrame:\n    df_clean = df.dropna(subset=['order_id', 'total_amount'])\n    summary = df_clean.groupby('city').agg(total_orders=('order_id', 'nunique'), total_revenue=('total_amount', 'sum')).reset_index()\n    return summary.sort_values(by='total_revenue', ascending=False)`
+          : modality === "EXCEL"
+          ? `=XLOOKUP(A2, Products!A:A, Products!D:D, "Unknown SKU")\n=FILTER(Orders!A2:G500, Orders!E2:E500="Tier 1")`
+          : modality === "POWER_BI"
+          ? `Total Revenue = CALCULATE(SUM(Orders[total_amount]), Orders[status] = "COMPLETED")`
+          : null,
+      skillsTested: [getToolGuidance(modality).skillCategory],
       rubric: {
         correctness: 40,
         edgeCases: 25,
@@ -214,9 +430,10 @@ Ensure the mission feels like a REAL task assigned by a VP of Engineering, Chief
 
   // 3. Persist into Database
   let targetAssignment: any = day.assignments?.[0];
+  const guidanceData = getToolGuidance(modality);
 
   if (!targetAssignment) {
-    targetAssignment = await db.assignment.create({
+    targetAssignment = await (db.assignment as any).create({
       data: {
         dayId: day.id,
         title: parsed.title || `Graded Mission: Day ${day.dayNumber}`,
@@ -224,6 +441,8 @@ Ensure the mission feels like a REAL task assigned by a VP of Engineering, Chief
         description: parsed.description || "12 LPA Graded Industry Mission",
         deadlineHours: 24,
         rubric: JSON.stringify(parsed.rubric || { correctness: 40, edgeCases: 25, performance: 20, executiveTranslation: 15 }),
+        toolGuidance: JSON.stringify(guidanceData),
+        skillsTested: JSON.stringify(parsed.skillsTested || [guidanceData.skillCategory]),
       },
       include: {
         questions: true,
@@ -239,6 +458,7 @@ Ensure the mission feels like a REAL task assigned by a VP of Engineering, Chief
         category: modality,
         prompt: parsed.prompt,
         starterCode: parsed.starterCode,
+        referenceSolution: parsed.referenceSolution || null,
         sampleData: JSON.stringify({
           company: parsed.company || randomCompany,
           tables: ["customers", "orders", "order_items", "products", "employees"],
@@ -250,13 +470,15 @@ Ensure the mission feels like a REAL task assigned by a VP of Engineering, Chief
     });
   } else {
     // Update existing assignment with fresh AI generation
-    await db.assignment.update({
+    await (db.assignment as any).update({
       where: { id: targetAssignment.id },
       data: {
         title: parsed.title,
         type: modality,
         description: parsed.description,
         rubric: JSON.stringify(parsed.rubric),
+        toolGuidance: JSON.stringify(guidanceData),
+        skillsTested: JSON.stringify(parsed.skillsTested || [guidanceData.skillCategory]),
       },
     });
 
@@ -268,6 +490,7 @@ Ensure the mission feels like a REAL task assigned by a VP of Engineering, Chief
           category: modality,
           prompt: parsed.prompt,
           starterCode: parsed.starterCode,
+          referenceSolution: parsed.referenceSolution || null,
           isAdaptive: true,
           adaptiveReason: parsed.adaptiveReason,
         },
@@ -280,6 +503,7 @@ Ensure the mission feels like a REAL task assigned by a VP of Engineering, Chief
           category: modality,
           prompt: parsed.prompt,
           starterCode: parsed.starterCode,
+          referenceSolution: parsed.referenceSolution || null,
           sampleData: JSON.stringify({ company: parsed.company || randomCompany }),
           weight: 100,
           isAdaptive: true,

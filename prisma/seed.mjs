@@ -335,6 +335,7 @@ Explore the inline code drills or consult Axiom Copilot for real-time guidance t
             category: "EXCEL",
             prompt: `You are an Analytics Specialist at Amazon Global Logistics. Build a resilient dynamic lookup model matching products and calculating line-item profits without brittle VLOOKUP. Extract Tier-1 orders using FILTER() and compute segment revenue with SUMIFS.`,
             starterCode: `/* Day 1 Excel Graded Mission: Advanced Lookups */\n// Formula 1: =XLOOKUP(Target_SKU, SKU_Range, Return_Range, "Unknown SKU")\n// Formula 2: =FILTER(Orders_Range, (Tier_Range="Tier 1") * (Quantity_Range>=50))\n// Formula 3: =SUMIFS(Amount_Range, Region_Range, "North", Tier_Range, "Tier 1")`,
+            referenceSolution: `=XLOOKUP(A2, Products!A:A, Products!D:D, "Unknown SKU")\n=FILTER(Orders!A2:G500, (Orders!E2:E500="Tier 1") * (Orders!D2:D500>=50))\n=SUMIFS(Orders!F2:F500, Orders!C2:C500, "North", Orders!E2:E500, "Tier 1")`,
             sampleData: JSON.stringify({ tables: ["customers", "orders", "order_items", "products"] }),
             weight: 100,
             isAdaptive: true,

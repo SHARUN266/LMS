@@ -2,17 +2,36 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { evaluateCodeSubmission } from "@/lib/ai";
 import { validateSQLSubmission, isUnchangedStarterCode } from "@/lib/sql-validator";
+import {
+  validatePythonStructure,
+  validateExcelSubmission,
+  validatePowerBISubmission,
+  validateGitHubSubmission,
+  validateDocumentStructure,
+} from "@/lib/submission-validators";
+import { extractAllFileContents } from "@/lib/file-parser";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const assignmentId = body.assignmentId;
-    const submittedCode = body.submittedCode || body.code;
-    const notes = body.notes;
+    const submittedCode = body.submittedCode || body.code || "";
+    const notes = body.notes || "";
+    const fileUrls = body.fileUrls ? (Array.isArray(body.fileUrls) ? JSON.stringify(body.fileUrls) : String(body.fileUrls)) : null;
+    const screenshotUrls = body.screenshotUrls ? (Array.isArray(body.screenshotUrls) ? JSON.stringify(body.screenshotUrls) : String(body.screenshotUrls)) : null;
+    const externalUrl = body.externalUrl || null;
+    const submissionType = body.submissionType || (fileUrls ? "FILE" : externalUrl ? "URL" : "CODE");
 
-    if (!assignmentId || !submittedCode) {
+    const hasDeliverable = Boolean(
+      (submittedCode && submittedCode.trim().length > 0) ||
+      fileUrls ||
+      screenshotUrls ||
+      externalUrl
+    );
+
+    if (!assignmentId || !hasDeliverable) {
       return NextResponse.json(
-        { error: "assignmentId and submittedCode (or code) are required" },
+        { error: "assignmentId and at least one deliverable (code, file, URL, or screenshot) are required" },
         { status: 400 }
       );
     }
@@ -63,16 +82,20 @@ export async function POST(req: Request) {
 
     const questionPrompt = assignment.questions[0]?.prompt || assignment.description;
     const starterCode = assignment.questions[0]?.starterCode || null;
-    const referenceSolution = null; // Assignments have distinct custom prompts evaluated by AI & execution sandbox
+    const referenceSolution = (assignment.questions[0] as any)?.referenceSolution || null;
     const category = assignment.type || "SQL";
 
     // --- STEP 0: Strict Guard: Reject Unmodified Starter Code & Trivial Queries ---
-    if (isUnchangedStarterCode(submittedCode, starterCode)) {
-      const submission = await db.submission.create({
+    if (submittedCode && submissionType === "CODE" && isUnchangedStarterCode(submittedCode, starterCode)) {
+      const submission = await (db.submission as any).create({
         data: {
           assignmentId: assignment.id,
           submittedCode: submittedCode,
           notes: notes || "",
+          fileUrls: fileUrls,
+          screenshotUrls: screenshotUrls,
+          externalUrl: externalUrl,
+          submissionType: submissionType,
           status: "EVALUATED",
         },
       });
@@ -137,6 +160,28 @@ export async function POST(req: Request) {
       });
     }
 
+    // --- STEP 0.5: Deep File Content Extraction ---
+    let extractedContent = "";
+    try {
+      // Parse file URLs from the JSON string
+      let filesToParse: string[] = [];
+      if (fileUrls) {
+        try {
+          const parsed = JSON.parse(fileUrls);
+          filesToParse = Array.isArray(parsed) ? parsed : [parsed];
+        } catch {
+          filesToParse = [fileUrls];
+        }
+      }
+
+      if (filesToParse.length > 0) {
+        extractedContent = await extractAllFileContents(filesToParse);
+        console.log(`[Deep Evaluation] Extracted ${extractedContent.length} chars from ${filesToParse.length} file(s)`);
+      }
+    } catch (extractErr) {
+      console.warn("File content extraction note (non-blocking):", extractErr);
+    }
+
     // --- STEP 1: Deterministic Execution & Validation (0 - 40 pts) ---
     let deterministicResult: any = {
       isExecutable: true,
@@ -150,53 +195,19 @@ export async function POST(req: Request) {
 
     const upperCategory = (category || "").toUpperCase();
 
-    if (upperCategory.includes("SQL") || upperCategory === "CASE_STUDY" || upperCategory === "MIXED") {
-      // Execute against SQLite sandbox
+    if (upperCategory.includes("SQL")) {
+      // Deterministic SQL execution against SQLite sandbox with gold-standard comparison
       deterministicResult = await validateSQLSubmission(submittedCode, referenceSolution);
     } else if (upperCategory.includes("PYTHON")) {
-      const hasPandas = /import\s+(pandas|numpy|matplotlib|seaborn)/i.test(submittedCode) || /pd\./i.test(submittedCode);
-      const hasTransform = /def\s+|lambda\b|\.groupby|\.merge|\.apply|\.agg|\.describe|\.head/i.test(submittedCode);
-      let pyScore = 15;
-      const pyFeedback: string[] = [];
-      if (hasPandas) {
-        pyScore += 15;
-        pyFeedback.push("Included data science libraries (pandas/numpy).");
-      }
-      if (hasTransform) {
-        pyScore += 10;
-        pyFeedback.push("Implemented analytical aggregation/transform logic.");
-      }
-      deterministicResult = {
-        isExecutable: true,
-        correctnessScore: Math.min(40, pyScore),
-        rowCount: 1,
-        columnMatch: true,
-        rowMatch: true,
-        orderMatch: true,
-        feedback: pyFeedback.length > 0 ? pyFeedback : ["Python analytical script syntax verified."],
-      };
+      deterministicResult = validatePythonStructure(submittedCode, fileUrls, externalUrl, extractedContent);
     } else if (upperCategory.includes("POWER_BI") || upperCategory.includes("DAX")) {
-      const hasDax = /CALCULATE|SUMX|AVERAGEX|FILTER|ALL|ALLEXCEPT|DIVIDE|RELATED|DATESYTD|TOTALYTD|USERELATIONSHIP/i.test(submittedCode);
-      const hasReportUrl = /https?:\/\/[^\s]+/i.test(notes || "") || /https?:\/\/[^\s]+/i.test(submittedCode);
-      let daxScore = 10;
-      const daxFeedback: string[] = [];
-      if (hasDax) {
-        daxScore += 20;
-        daxFeedback.push("DAX measures implement proper calculation filter context.");
-      }
-      if (hasReportUrl) {
-        daxScore += 10;
-        daxFeedback.push("Live dashboard report URL provided for portfolio audit.");
-      }
-      deterministicResult = {
-        isExecutable: true,
-        correctnessScore: Math.min(40, daxScore),
-        rowCount: 1,
-        columnMatch: true,
-        rowMatch: true,
-        orderMatch: true,
-        feedback: daxFeedback.length > 0 ? daxFeedback : ["Power BI / DAX model measures verified."],
-      };
+      deterministicResult = validatePowerBISubmission(submittedCode, externalUrl, screenshotUrls, fileUrls, extractedContent);
+    } else if (upperCategory.includes("EXCEL")) {
+      deterministicResult = validateExcelSubmission(fileUrls, screenshotUrls, notes, submittedCode, extractedContent);
+    } else if (upperCategory.includes("DBT") || upperCategory.includes("GIT")) {
+      deterministicResult = await validateGitHubSubmission(externalUrl || submittedCode);
+    } else {
+      deterministicResult = validateDocumentStructure(submittedCode, fileUrls, notes, extractedContent);
     }
 
     // --- STEP 2: Qualitative AI Evaluation via Gemini ---
@@ -218,12 +229,27 @@ export async function POST(req: Request) {
       remedialTasks: ["Review required table joins and aggregations"],
     };
 
+    let deliverableAudit = "";
+    if (fileUrls) deliverableAudit += `\n[Uploaded Files]: ${fileUrls}`;
+    if (screenshotUrls) deliverableAudit += `\n[Screenshots Attached]: ${screenshotUrls}`;
+    if (externalUrl) deliverableAudit += `\n[External Deliverable URL]: ${externalUrl}`;
+
+    // Inject extracted file content for Gemini deep analysis
+    const fileExtraction = extractedContent || deterministicResult.extractedContent || "";
+    if (fileExtraction.length > 0) {
+      deliverableAudit += `\n\n═══ EXTRACTED FILE CONTENT (Evaluate the actual deliverable below) ═══\n${fileExtraction}`;
+    }
+
+    const enrichedNotes = `${notes || ""}${deliverableAudit}`;
+
     try {
       const geminiResponse = await evaluateCodeSubmission(
         submittedCode,
         assignment.title,
         questionPrompt,
-        category
+        category,
+        referenceSolution,
+        enrichedNotes
       );
       aiEvalResult = {
         ...aiEvalResult,
@@ -231,7 +257,7 @@ export async function POST(req: Request) {
         rubricScores: {
           ...geminiResponse.rubricScores,
           correctness: deterministicResult.correctnessScore,
-          explanation: notes && notes.trim().length > 10 ? 4 : 1,
+          explanation: enrichedNotes.trim().length > 15 ? 5 : 1,
         },
       };
     } catch (aiErr) {
@@ -263,11 +289,15 @@ export async function POST(req: Request) {
     const finalPassed = calculatedTotalScore >= passingThreshold;
 
     // --- STEP 4: Save Submission & Evaluation ---
-    const submission = await db.submission.create({
+    const submission = await (db.submission as any).create({
       data: {
         assignmentId: assignment.id,
         submittedCode: submittedCode,
         notes: notes || "",
+        fileUrls: fileUrls,
+        screenshotUrls: screenshotUrls,
+        externalUrl: externalUrl,
+        submissionType: submissionType,
         status: "EVALUATED",
       },
     });

@@ -79,14 +79,14 @@ Format: Python 3 with Pandas.
 Scenario: Production data engineering pipeline at an Indian unicorn (Zepto / Swiggy / Razorpay).
 Starter Code: Python snippet with import pandas as pd, def solution_fn(...) signature.
 Solution: Clean, vectorized pandas transformation.`;
-    } else if (modality === "API") {
-      defaultDrill.starterCode = `{\n  "endpoint": "/api/v1/orders",\n  "method": "POST",\n  "headers": {\n    "Authorization": "Bearer <TOKEN>",\n    "Content-Type": "application/json"\n  },\n  "body": {\n    "customerId": "cust_123",\n    "items": []\n  }\n}`;
-      defaultDrill.solution = `{\n  "status": "success",\n  "code": 200,\n  "data": {\n    "orderId": "ord_9941",\n    "status": "CONFIRMED",\n    "totalAmount": 1499.00,\n    "timestamp": "2026-09-21T10:30:00Z"\n  }\n}`;
+    } else if (modality === "DBT_GIT") {
+      defaultDrill.starterCode = `-- models/staging/stg_orders.sql\nWITH source AS (\n    SELECT * FROM {{ source('raw', 'orders') }}\n)\nSELECT\n    id AS order_id,\n    customer_id,\n    total_amount,\n    created_at\nFROM source;`;
+      defaultDrill.solution = `WITH source AS (\n    SELECT * FROM {{ source('raw', 'orders') }}\n)\nSELECT\n    id AS order_id,\n    customer_id,\n    ROUND(total_amount, 2) AS total_amount,\n    DATE(created_at) AS order_date\nFROM source\nWHERE status = 'COMPLETED'`;
       modalityContext = `
-Format: REST API Specification / JSON Contract.
-Scenario: Microservice communication or OpenAPI schema definition.
-Starter Code: JSON contract template with endpoint, headers, and request/response structure.
-Solution: Valid JSON schema payload handling authentication and error responses.`;
+Format: dbt SQL Model with Jinja templating & modular CTE DAGs.
+Scenario: Production analytics engineering pipeline in dbt Core.
+Starter Code: dbt model with source() or ref() Jinja macros and CTE staging.
+Solution: Clean, standardized dbt transformation model with CTEs.`;
     } else if (modality === "POWER_BI") {
       defaultDrill.starterCode = `-- Power BI DAX Measure Drill\nTotal_Net_Revenue = \nVAR GrossSales = SUM(Orders[TotalAmount])\nVAR DiscountAmount = SUM(Orders[Discount])\nRETURN\n    -- Implement DAX logic here\n    BLANK()`;
       defaultDrill.solution = `Total_Net_Revenue = \nVAR GrossSales = SUM(Orders[TotalAmount])\nVAR DiscountAmount = SUM(Orders[Discount])\nRETURN\n    DIVIDE(GrossSales - DiscountAmount, GrossSales, 0)`;
@@ -95,6 +95,14 @@ Format: Power BI DAX Formulas.
 Scenario: Enterprise Star Schema data model (FactOrders, DimCustomer, DimDate).
 Starter Code: DAX formula measure template with VAR / RETURN syntax.
 Solution: Production DAX measure using CALCULATE, DIVIDE, or time intelligence functions.`;
+    } else if (modality === "EXCEL") {
+      defaultDrill.starterCode = `/* Excel Dynamic Function Drill */\n// Formula: =XLOOKUP(Target_Cell, Lookup_Range, Return_Range, "Not Found")\n// Formula: =FILTER(Data_Range, Condition_Range="Criteria")`;
+      defaultDrill.solution = `=XLOOKUP(A2, Products!A:A, Products!D:D, "Unknown SKU")`;
+      modalityContext = `
+Format: Modern Excel Formula & Spreadsheet Functions.
+Scenario: Enterprise financial and operations modeling at Amazon/Swiggy.
+Starter Code: Formula syntax template with comments explaining input parameters.
+Solution: Robust modern Excel formula (XLOOKUP, INDEX/MATCH, FILTER, SUMIFS).`;
     } else {
       // Document & Strategy Modalities (BRD, PROMPT_ENG, AI_PRD, COMPLIANCE, CHANGE_MGMT, CONSULTING_CASE)
       defaultDrill.starterCode = `# ${day.title} Executive Deliverable\n\n## 1. Problem Statement & Scope\n\n## 2. Key Stakeholder Requirements\n\n## 3. Measurable Acceptance Criteria & Metrics\n`;

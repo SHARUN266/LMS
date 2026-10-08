@@ -35,7 +35,10 @@ export default async function AssignmentsPage() {
     orderBy: { day: { dayNumber: "asc" } },
   });
 
-  const activeAssignment = assignments.find((a) => a.day?.dayNumber === 2) || assignments[0];
+  const activeAssignment =
+    assignments.find(
+      (a) => (a.day?.isUnlocked ?? true) && (!a.submissions.length || !a.submissions[0].evaluation?.passed)
+    ) || assignments[0];
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-16">
@@ -126,8 +129,8 @@ export default async function AssignmentsPage() {
             const hasSubmission = a.submissions && a.submissions.length > 0;
             const lastSub = hasSubmission ? a.submissions[0] : null;
             const score = lastSub?.evaluation?.score;
-            const isToday = dayNum === 2;
-            const isUnlocked = dayNum <= 3;
+            const isUnlocked = Boolean(a.day?.isUnlocked ?? true);
+            const isToday = a.id === activeAssignment?.id;
 
             return (
               <Card

@@ -35,8 +35,9 @@ Thumbs.db
 *.swp
 *.swo
 
-# TypeScript build info
-*.tsbuildinfo
+# User Uploads
+public/uploads/*
+!public/uploads/.gitkeep
 
 # Prisma SQLite database files (optional - ignore journals & temporary databases)
 prisma/*.db-journal

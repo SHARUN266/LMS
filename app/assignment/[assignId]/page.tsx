@@ -1,25 +1,20 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import {
   FileCheck2,
   Send,
   Sparkles,
-  Bot,
   Clock,
-  ShieldAlert,
-  HelpCircle,
-  CheckCircle2,
-  FileCode,
   Loader2,
   AlertCircle,
   History,
-  Award,
 } from "lucide-react";
 import { DailyStepper } from "@/components/DailyStepper";
-import { CodeEditor } from "@/components/CodeEditor";
+import { AssignmentBrief } from "@/components/AssignmentBrief";
+import { SubmissionPanel, UploadedFileItem } from "@/components/SubmissionPanel";
+import { getToolGuidance, ToolGuidance, AssignmentModality } from "@/lib/dynamic-generator";
 
 interface AssignmentQuestion {
   id: string;
@@ -38,6 +33,8 @@ interface AssignmentData {
   type: string;
   description: string;
   deadlineHours: number;
+  toolGuidance?: string | null;
+  skillsTested?: string | null;
   day?: {
     id: string;
     dayNumber: number;
@@ -62,10 +59,13 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
   const [loading, setLoading] = useState(true);
   const [selectedQIdx, setSelectedQIdx] = useState(0);
 
-  // Store code per question
+  // Deliverables State
   const [questionCodes, setQuestionCodes] = useState<Record<string, string>>({});
-  const [reportUrl, setReportUrl] = useState("");
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFileItem[]>([]);
+  const [uploadedScreenshots, setUploadedScreenshots] = useState<UploadedFileItem[]>([]);
+  const [externalUrl, setExternalUrl] = useState("");
   const [notes, setNotes] = useState("");
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRunningTests, setIsRunningTests] = useState(false);
   const [testResults, setTestResults] = useState<{
@@ -74,6 +74,7 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
     cases: { name: string; description: string; passed: boolean; details: string }[];
   } | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   useEffect(() => {
     async function loadAssignment() {
@@ -105,18 +106,32 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
   const questions = assignment?.questions || [];
   const currentQuestion = questions[selectedQIdx] || questions[0];
   const assignmentType = (assignment?.type || "SQL").toUpperCase();
+  const modality = (assignment?.type || "SQL") as AssignmentModality;
 
-  const [isRegenerating, setIsRegenerating] = useState(false);
+  // Derive or parse tool guidance
+  let guidance: ToolGuidance;
+  try {
+    if (assignment?.toolGuidance) {
+      guidance = JSON.parse(assignment.toolGuidance);
+    } else {
+      guidance = getToolGuidance(modality);
+    }
+  } catch {
+    guidance = getToolGuidance(modality);
+  }
 
   const getLanguageDetails = () => {
-    if (assignmentType.includes("PYTHON")) {
-      return { lang: "python", file: "pipeline.py", label: "Python Script (Pandas / Analytics)" };
+    if (assignmentType.includes("EXCEL")) {
+      return { lang: "plaintext", file: "formulas.txt", label: "Excel Modern Formulas & Functions" };
     }
-    if (assignmentType.includes("API") || assignmentType.includes("JSON")) {
-      return { lang: "json", file: "payload_contract.json", label: "REST API Payload & Schema Definition" };
+    if (assignmentType.includes("PYTHON")) {
+      return { lang: "python", file: "pipeline.py", label: "Python Analytics Pipeline (Pandas / NumPy)" };
     }
     if (assignmentType.includes("POWER_BI") || assignmentType.includes("DAX")) {
-      return { lang: "sql", file: "measures.dax", label: "Power BI DAX & Data Model Definition" };
+      return { lang: "sql", file: "measures.dax", label: "Power BI DAX Measures & Semantic Model" };
+    }
+    if (assignmentType.includes("DBT_GIT")) {
+      return { lang: "sql", file: "models/staging/stg_model.sql", label: "dbt Transformation Model (Jinja/SQL)" };
     }
     if (
       assignmentType.includes("BRD") ||
@@ -127,7 +142,7 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
       assignmentType.includes("CONSULTING") ||
       assignmentType.includes("CASE")
     ) {
-      return { lang: "markdown", file: "deliverable.md", label: "Executive Specification & Strategy Document" };
+      return { lang: "markdown", file: "deliverable.md", label: "Executive Specification & Architecture Document" };
     }
     return { lang: "sql", file: `solution_${selectedQIdx + 1}.sql`, label: "Analytical SQL Query (PostgreSQL / SQLite)" };
   };
@@ -169,22 +184,17 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
   const activeCode = currentQuestion
     ? questionCodes[currentQuestion.id] !== undefined
       ? questionCodes[currentQuestion.id]
-      : currentQuestion.starterCode || "-- Write solution code here"
+      : currentQuestion.starterCode || ""
     : "";
 
-  const handleCodeChange = (val: string | undefined) => {
+  const handleCodeChange = (val: string) => {
     if (currentQuestion) {
-      setQuestionCodes((prev) => ({ ...prev, [currentQuestion.id]: val || "" }));
+      setQuestionCodes((prev) => ({ ...prev, [currentQuestion.id]: val }));
     }
   };
 
-  // Local test runner (LeetCode style pre-check)
+  // Pre-Submission Check
   const handleRunTestCases = async () => {
-    if (!activeCode.trim()) {
-      setErrorMessage("Please write your solution code before running test cases.");
-      return;
-    }
-
     setIsRunningTests(true);
     setErrorMessage("");
 
@@ -209,22 +219,30 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
           allPassed: case1Pass && case2Pass && case3Pass,
           cases: [
             {
-              name: "Test Case 1: Schema & Joins Integrity",
+              name: "Check 1: Schema & Joins Integrity",
               description: "Validates SQL syntax, join conditions, and sandbox table access.",
               passed: case1Pass,
-              details: data.error ? `Syntax/Execution Error: ${data.error}` : isBlankOrStarter ? "Template unmodified. Implement query logic." : "Executed with valid table references.",
+              details: data.error
+                ? `Syntax/Execution Error: ${data.error}`
+                : isBlankOrStarter
+                ? "Template unmodified. Write analytical query."
+                : "Executed with valid table references.",
             },
             {
-              name: "Test Case 2: Result Set & Output Math",
+              name: "Check 2: Result Set & Output Math",
               description: "Verifies dataset produces non-empty output with calculated fields.",
               passed: case2Pass,
-              details: data.rows?.length > 0 ? `Returned ${data.rows.length} rows.` : "0 rows returned. Check filter conditions.",
+              details: data.rows?.length > 0
+                ? `Returned ${data.rows.length} rows.`
+                : "0 rows returned. Verify filter and join conditions.",
             },
             {
-              name: "Test Case 3: 12 LPA Edge Cases & Analytical Structure",
+              name: "Check 3: 12 LPA Analytical Structure",
               description: "Checks analytical structure against trivial SELECT bypasses.",
               passed: case3Pass,
-              details: case3Pass ? "Production query structure validated." : "Query is too basic or unmodified starter code.",
+              details: case3Pass
+                ? "Production analytical query structure validated."
+                : "Query is too basic or unmodified starter code.",
             },
           ],
         });
@@ -234,8 +252,8 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
           allPassed: false,
           cases: [
             {
-              name: "Test Case 1: Syntax & Sandbox Execution",
-              description: "Checks if code executes cleanly.",
+              name: "Check 1: Syntax & Sandbox Execution",
+              description: "Checks if query executes cleanly.",
               passed: false,
               details: err.message || "Failed to execute query.",
             },
@@ -244,141 +262,137 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
       } finally {
         setIsRunningTests(false);
       }
-    } else if (assignmentType.includes("PYTHON")) {
-      const hasImportsOrFuncs = /import\s+pandas|import\s+numpy|def\s+|\.read_csv|pd\./i.test(activeCode);
-      const hasTransforms = /\.groupby|\.agg|\.apply|\.merge|\.filter|\.loc|\.iloc|\.pivot|lambda/i.test(activeCode);
-      const hasAnalyticalDepth = !isBlankOrStarter && activeCode.length > 80;
+    } else if (assignmentType.includes("EXCEL")) {
+      const hasUploadedExcel = uploadedFiles.some((f) => f.type.includes("xls") || f.type.includes("csv"));
+      const hasFormulas = /=XLOOKUP|=INDEX|=MATCH|=FILTER|=SUMIFS|=COUNTIFS/i.test(activeCode);
+      const hasNotes = notes.trim().length > 20;
 
       setTestResults({
         tested: true,
-        allPassed: hasImportsOrFuncs && hasTransforms && hasAnalyticalDepth,
+        allPassed: (hasUploadedExcel || hasFormulas) && hasNotes,
         cases: [
           {
-            name: "Test Case 1: Python & Pandas Syntactic Structure",
-            description: "Verifies library imports, function signatures, and DataFrame operations.",
-            passed: hasImportsOrFuncs,
-            details: hasImportsOrFuncs ? "Pandas/NumPy idioms & function syntax validated." : "Missing pandas/numpy imports or analytical function definition.",
+            name: "Check 1: Excel Workbook Deliverable (.xlsx / .csv)",
+            description: "Verifies completed Excel model workbook has been uploaded.",
+            passed: hasUploadedExcel,
+            details: hasUploadedExcel
+              ? `Uploaded workbook (${uploadedFiles[0].filename}) attached.`
+              : "No .xlsx/.csv file uploaded yet. Attach your completed model.",
           },
           {
-            name: "Test Case 2: Vectorized Transformations & Aggregations",
-            description: "Checks for non-trivial data manipulation (groupby, merge, agg, pivot).",
-            passed: hasTransforms,
-            details: hasTransforms ? "Vectorized transformations & aggregations detected." : "No aggregation or transformation logic found (groupby/merge/pivot).",
+            name: "Check 2: Dynamic Formulas / Functions Documented",
+            description: "Verifies modern Excel formulas (XLOOKUP, FILTER, SUMIFS) are provided.",
+            passed: hasFormulas || hasUploadedExcel,
+            details: hasFormulas
+              ? "Modern lookup / aggregation formulas detected."
+              : hasUploadedExcel
+              ? "Workbook provided; formula inspection will run during grading."
+              : "Document formulas in editor or upload workbook.",
           },
           {
-            name: "Test Case 3: Pipeline Output & Depth",
-            description: "Verifies script contains complete data pipeline logic.",
-            passed: hasAnalyticalDepth,
-            details: hasAnalyticalDepth ? "Sufficient analytical depth provided." : "Pipeline is too brief or incomplete.",
+            name: "Check 3: Business Model Explanation & Assumptions",
+            description: "Checks for methodology notes explaining financial/operational assumptions.",
+            passed: hasNotes,
+            details: hasNotes
+              ? "Methodology notes provided."
+              : "Please write at least 2-3 sentences explaining your approach.",
           },
         ],
       });
       setIsRunningTests(false);
-    } else if (assignmentType.includes("API") || assignmentType.includes("JSON")) {
-      let isJsonValid = false;
-      try {
-        JSON.parse(activeCode);
-        isJsonValid = true;
-      } catch {
-        isJsonValid = /\{\s*["']|\b(GET|POST|PUT|DELETE)\b/i.test(activeCode);
-      }
-      const hasEndpointSchema = /status|data|error|headers|body|response|code|id/i.test(activeCode);
-      const hasAuthOrCodes = /bearer|token|auth|200|201|400|401|404|500/i.test(activeCode);
+    } else if (assignmentType.includes("PYTHON")) {
+      const hasNotebookOrScript = uploadedFiles.some((f) => f.type.includes("ipynb") || f.type.includes("py"));
+      const hasCode = activeCode.trim().length > 50;
+      const hasImportsOrFuncs = /import\s+pandas|import\s+numpy|def\s+|\.read_csv|pd\./i.test(activeCode);
+      const hasColabUrl = /colab\.research\.google\.com|github\.com/i.test(externalUrl);
 
       setTestResults({
         tested: true,
-        allPassed: isJsonValid && hasEndpointSchema && hasAuthOrCodes,
+        allPassed: (hasNotebookOrScript || hasCode || hasColabUrl) && (hasImportsOrFuncs || hasNotebookOrScript),
         cases: [
           {
-            name: "Test Case 1: JSON Payload & Schema Syntax",
-            description: "Checks payload format and syntactic correctness.",
-            passed: isJsonValid,
-            details: isJsonValid ? "Valid JSON/HTTP payload structure." : "Malformed JSON syntax or missing object notation.",
+            name: "Check 1: Python Pipeline Deliverable (Script, Notebook or Colab)",
+            description: "Verifies Python script, notebook file, or Colab link has been provided.",
+            passed: hasNotebookOrScript || hasCode || hasColabUrl,
+            details: hasNotebookOrScript
+              ? `Notebook file (${uploadedFiles[0].filename}) attached.`
+              : hasColabUrl
+              ? "Colab / GitHub URL provided."
+              : hasCode
+              ? "Pipeline script entered in editor."
+              : "Please provide a Python script, notebook file, or Colab link.",
           },
           {
-            name: "Test Case 2: Contract Attributes & Response Hierarchy",
-            description: "Checks for standard API schema fields (status, data, error, response).",
-            passed: hasEndpointSchema,
-            details: hasEndpointSchema ? "Standard API response envelope detected." : "Missing core response envelope fields (status/data/error).",
-          },
-          {
-            name: "Test Case 3: HTTP Status Codes & Security Headers",
-            description: "Verifies status codes (200/201/400) or authorization header patterns.",
-            passed: hasAuthOrCodes,
-            details: hasAuthOrCodes ? "HTTP status codes or auth contract validated." : "Missing HTTP status codes (e.g. 200/400) or auth references.",
+            name: "Check 2: Pandas / NumPy Vectorization & Transforms",
+            description: "Checks for analytical transformations (groupby, agg, merge, clean).",
+            passed: hasImportsOrFuncs || hasNotebookOrScript,
+            details: hasImportsOrFuncs
+              ? "Data pipeline logic and library imports validated."
+              : "Missing pandas/numpy transformations or function definitions.",
           },
         ],
       });
       setIsRunningTests(false);
     } else if (assignmentType.includes("POWER_BI") || assignmentType.includes("DAX")) {
-      const hasDaxSignatures = /CALCULATE|SUM|SUMX|AVERAGE|DIVIDE|COUNTROWS|DISTINCTCOUNT/i.test(activeCode);
-      const hasContextTransition = /FILTER|ALL|ALLEXCEPT|RELATED|USERELATIONSHIP|KEEPFILTERS|VALUES/i.test(activeCode);
-      const hasSafeMath = !isBlankOrStarter && activeCode.length > 40;
+      const hasPbix = uploadedFiles.some((f) => f.type.includes("pbix") || f.type.includes("pdf"));
+      const hasDashboardUrl = /app\.powerbi\.com|novypro\.com|github\.com/i.test(externalUrl);
+      const hasScreenshots = uploadedScreenshots.length > 0;
+      const hasDax = /CALCULATE|SUMX|AVERAGEX|FILTER|ALL|ALLEXCEPT|DIVIDE|RELATED|DATESYTD/i.test(activeCode);
 
       setTestResults({
         tested: true,
-        allPassed: hasDaxSignatures && hasContextTransition && hasSafeMath,
+        allPassed: (hasPbix || hasDashboardUrl || hasScreenshots) && (hasDax || hasPbix),
         cases: [
           {
-            name: "Test Case 1: DAX Function Signatures",
-            description: "Verifies standard DAX aggregation & calculation operators.",
-            passed: hasDaxSignatures,
-            details: hasDaxSignatures ? "Core DAX functions (CALCULATE, DIVIDE, SUMX) detected." : "Missing core DAX aggregation functions.",
+            name: "Check 1: Dashboard Evidence (.pbix, Live URL, or Screenshot)",
+            description: "Verifies external Power BI deliverable proof has been attached.",
+            passed: hasPbix || hasDashboardUrl || hasScreenshots,
+            details: hasPbix
+              ? `Attached .pbix file (${uploadedFiles[0].filename}).`
+              : hasDashboardUrl
+              ? "Live published report URL provided."
+              : hasScreenshots
+              ? `${uploadedScreenshots.length} dashboard screenshot(s) attached.`
+              : "Upload your .pbix file, published URL, or dashboard screenshot.",
           },
           {
-            name: "Test Case 2: Filter Context & Table Navigation",
-            description: "Checks for filter modifiers (FILTER, ALL, RELATED, USERELATIONSHIP).",
-            passed: hasContextTransition,
-            details: hasContextTransition ? "Filter context modifier detected." : "Lacks context manipulation (FILTER, ALL, RELATED).",
-          },
-          {
-            name: "Test Case 3: Measure Definition Completeness",
-            description: "Ensures comprehensive measure definition with safe math handling.",
-            passed: hasSafeMath,
-            details: hasSafeMath ? "Production-grade measure formulation." : "Measure is too brief or unmodified starter code.",
+            name: "Check 2: DAX Measure Formulations",
+            description: "Verifies DAX calculation formulas (CALCULATE, DIVIDE, time intelligence).",
+            passed: hasDax || hasPbix,
+            details: hasDax
+              ? "Enterprise DAX measure formulas detected."
+              : "Document your core DAX measures in the editor below.",
           },
         ],
       });
       setIsRunningTests(false);
     } else {
-      // Document / Architecture / Strategy Modalities: BRD, PROMPT_ENG, AI_PRD, COMPLIANCE, CHANGE_MGMT, CONSULTING_CASE
+      // General Document / Strategy Deliverable (BRD, dbt, Compliance, Architecture)
       const hasHeadings = /#{1,3}\s+[A-Za-z0-9]|(\b1\.|\b2\.|\b3\.)/i.test(activeCode);
-      const hasDomainKeywords =
-        assignmentType.includes("BRD")
-          ? /user stor|acceptance criteria|scope|stakeholder|requirement/i.test(activeCode)
-          : assignmentType.includes("PROMPT")
-          ? /system|prompt|role|few-shot|output schema|constraint/i.test(activeCode)
-          : assignmentType.includes("AI_PRD")
-          ? /model|latency|fallback|guardrail|hallucination|accuracy|roi/i.test(activeCode)
-          : assignmentType.includes("COMPLIANCE")
-          ? /dpdp|gdpr|pii|privacy|audit|retention|consent|data protection/i.test(activeCode)
-          : assignmentType.includes("CHANGE")
-          ? /adkar|raci|stakeholder|communication|training|resistance/i.test(activeCode)
-          : /mece|executive summary|recommendation|levers|roi|risk|c-suite/i.test(activeCode);
-
-      const hasThoroughDepth = !isBlankOrStarter && activeCode.length > 120;
+      const hasFileOrUrl = uploadedFiles.length > 0 || externalUrl.trim().length > 0;
+      const hasDepth = activeCode.trim().length > 100 || hasFileOrUrl;
 
       setTestResults({
         tested: true,
-        allPassed: hasHeadings && hasDomainKeywords && hasThoroughDepth,
+        allPassed: (hasHeadings || hasFileOrUrl) && hasDepth,
         cases: [
           {
-            name: "Test Case 1: Executive Document Structure",
-            description: "Validates clear hierarchical headings, sections, or numbered breakdown.",
-            passed: hasHeadings,
-            details: hasHeadings ? "Clear structural hierarchy & sections detected." : "Missing clear markdown headings or numbered sections.",
+            name: "Check 1: Deliverable Structure & Hierarchy",
+            description: "Validates clear document sections, headings, or uploaded architecture file.",
+            passed: hasHeadings || hasFileOrUrl,
+            details: hasHeadings
+              ? "Structured document headings detected."
+              : hasFileOrUrl
+              ? "Attached deliverable file or URL."
+              : "Use clear markdown headings (# Problem, ## Requirements) or upload document.",
           },
           {
-            name: `Test Case 2: ${assignmentType} Domain Framework`,
-            description: `Checks for critical industry terminology and frameworks for ${assignmentType}.`,
-            passed: hasDomainKeywords,
-            details: hasDomainKeywords ? "Industry-standard frameworks and domain terminology validated." : `Missing expected ${assignmentType} terminology.`,
-          },
-          {
-            name: "Test Case 3: 12 LPA Analytical Depth & Rigor",
-            description: "Ensures deliverable provides actionable, enterprise-grade detail.",
-            passed: hasThoroughDepth,
-            details: hasThoroughDepth ? "Sufficient depth and operational detail provided." : "Deliverable is too brief. Provide a thorough specification.",
+            name: "Check 2: 12 LPA Analytical Depth",
+            description: "Ensures deliverable provides actionable, enterprise-grade specifications.",
+            passed: hasDepth,
+            details: hasDepth
+              ? "Sufficient specification depth provided."
+              : "Deliverable is too brief. Provide comprehensive requirements.",
           },
         ],
       });
@@ -387,8 +401,15 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
   };
 
   const handleSubmit = async () => {
-    if (!activeCode.trim()) {
-      setErrorMessage("Please enter your solution code before submitting.");
+    const hasCode = Boolean(activeCode && activeCode.trim().length > 0);
+    const hasFiles = uploadedFiles.length > 0;
+    const hasScreenshots = uploadedScreenshots.length > 0;
+    const hasUrl = Boolean(externalUrl && externalUrl.trim().length > 0);
+
+    if (!hasCode && !hasFiles && !hasScreenshots && !hasUrl) {
+      setErrorMessage(
+        "Please provide a solution deliverable (code, file upload, screenshot proof, or live link) before submitting."
+      );
       return;
     }
 
@@ -396,17 +417,31 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
     setErrorMessage("");
 
     try {
-      const combinedNotes = reportUrl
-        ? `[Live Dashboard Report URL]: ${reportUrl}\n\n[Learner Architectural Notes]:\n${notes}`
+      const activeExternalUrl = externalUrl || undefined;
+      const combinedNotes = activeExternalUrl
+        ? `[Live URL / Repo]: ${activeExternalUrl}\n\n[Learner Architectural Notes]:\n${notes}`
         : notes;
+
+      const submissionType =
+        hasFiles && hasCode
+          ? "MIXED"
+          : hasFiles
+          ? "FILE"
+          : hasUrl && !hasCode
+          ? "URL"
+          : "CODE";
 
       const res = await fetch("/api/evaluate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           assignmentId: assignment?.id || params.assignId,
-          submittedCode: activeCode,
+          submittedCode: activeCode || "",
           notes: combinedNotes,
+          fileUrls: uploadedFiles.map((f) => f.url),
+          screenshotUrls: uploadedScreenshots.map((s) => s.url),
+          externalUrl: activeExternalUrl,
+          submissionType,
         }),
       });
 
@@ -428,12 +463,12 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
     return (
       <div className="flex flex-col items-center justify-center h-96 space-y-3">
         <Loader2 className="w-8 h-8 animate-spin text-masai-red" />
-        <p className="text-xs text-slate-400 font-medium">Loading graded assignment requirements...</p>
+        <p className="text-xs text-muted-foreground font-medium">Loading graded assignment requirements...</p>
       </div>
     );
   }
 
-  const dayNum = assignment?.day?.dayNumber || 2;
+  const dayNum = assignment?.day?.dayNumber || 1;
   const submissions = assignment?.submissions || [];
 
   return (
@@ -452,41 +487,37 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
           <div className="flex items-center flex-wrap gap-2 text-xs font-semibold text-muted-foreground">
             <span>Day {dayNum} Graded Online Judge</span>
             <span>•</span>
-            <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+            <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20">
               {assignmentType} Track
             </span>
             <span>•</span>
-            <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+            <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-emerald-500" />
               <span>AI Synthesized</span>
             </span>
             <span>•</span>
-            <span className="text-amber-600 font-bold flex items-center gap-1">
+            <span className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1">
               <Clock className="w-3.5 h-3.5" /> Due in {assignment?.deadlineHours || 24}h
             </span>
           </div>
           <h1 className="text-2xl font-black text-foreground tracking-tight mt-1">
-            {assignment?.title || "Daily Graded Assignment"}
+            {assignment?.title || "Daily Graded Mission"}
           </h1>
-          {currentQuestion?.adaptiveReason && (
-            <p className="text-xs text-indigo-700 font-medium bg-indigo-50/70 border border-indigo-100 rounded-md px-2.5 py-1 mt-1.5 inline-block">
-              🎯 {currentQuestion.adaptiveReason}
-            </p>
-          )}
         </div>
 
         <div className="flex items-center flex-wrap gap-2">
-          {/* AI Re-roll and Hard Mode buttons */}
+          {/* AI Re-roll button */}
           <button
             onClick={() => handleRegenerateAssignment("standard")}
             disabled={isRegenerating || isSubmitting}
-            title="Synthesize a new variation of this mission using Gemini AI"
+            title="Synthesize a fresh variation of this mission using Gemini AI"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-card hover:bg-muted text-foreground border border-border text-xs font-semibold shadow-xs transition-all disabled:opacity-50"
           >
             <Sparkles className={`w-3.5 h-3.5 text-purple-600 ${isRegenerating ? "animate-spin" : ""}`} />
             <span>{isRegenerating ? "Synthesizing..." : "✨ Re-roll Mission"}</span>
           </button>
 
+          {/* Hard Mode button */}
           <button
             onClick={() => handleRegenerateAssignment("hard")}
             disabled={isRegenerating || isSubmitting}
@@ -496,24 +527,26 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
             <span>🔥 12 LPA Hard Mode</span>
           </button>
 
+          {/* Pre-Check button */}
           <button
             onClick={handleRunTestCases}
             disabled={isRunningTests || isRegenerating}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-card hover:bg-muted text-foreground border border-border text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-card hover:bg-muted text-foreground border border-border text-xs font-semibold shadow-xs transition-all disabled:opacity-50"
           >
             {isRunningTests ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileCheck2 className="w-3.5 h-3.5 text-indigo-600" />}
-            <span>Run Test Cases</span>
+            <span>Run Pre-Check</span>
           </button>
 
+          {/* Submit button */}
           <button
             onClick={handleSubmit}
             disabled={isSubmitting || isRegenerating}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-masai-red hover:bg-masai-red/90 text-white text-xs font-semibold shadow-sm transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-masai-red hover:bg-masai-red/90 text-white text-xs font-semibold shadow-xs transition-colors disabled:opacity-50"
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Evaluating Submission...</span>
+                <span>Evaluating Deliverables...</span>
               </>
             ) : (
               <>
@@ -526,165 +559,27 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
       </div>
 
       {errorMessage && (
-        <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-rose-600" />
+        <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{errorMessage}</span>
         </div>
       )}
 
-      {/* Main Grid: Problem Brief & Monaco Editor */}
+      {/* Main Grid: 5 Clarity Blocks Brief (Left 1 Col) & Dynamic Submission Panel (Right 2 Cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 1 Col: Problem Requirements, Acceptance Criteria & Rubric */}
+        {/* Left Column: 5 Clarity Blocks Brief */}
         <div className="space-y-4">
-          {/* Question Selector if multiple */}
-          {questions.length > 1 && (
-            <div className="p-3 rounded-xl bg-card border border-border space-y-2 shadow-sm">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground">Assignment Problems:</span>
-              <div className="flex gap-2">
-                {questions.map((q, idx) => (
-                  <button
-                    key={q.id}
-                    onClick={() => setSelectedQIdx(idx)}
-                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      selectedQIdx === idx
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "bg-muted text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    Question {idx + 1} ({q.weight}%)
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          <AssignmentBrief
+            assignment={assignment!}
+            currentQuestion={currentQuestion}
+            selectedQIdx={selectedQIdx}
+            onSelectQIdx={setSelectedQIdx}
+            questions={questions}
+          />
 
-          <div className="p-5 rounded-2xl bg-card border border-border shadow-sm space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-600 flex items-center gap-1.5">
-              <ShieldAlert className="w-4 h-4" /> Assignment Objectives
-            </h3>
-            <p className="text-xs text-slate-700 leading-relaxed">
-              {assignment?.description || "Solve the business case using production-standard patterns."}
-            </p>
-
-            {/* AI Adaptive Mission Badge */}
-            {(currentQuestion?.isAdaptive || currentQuestion?.adaptiveReason) && (
-              <div className="p-3.5 rounded-xl bg-purple-50/80 border border-purple-200 text-xs text-purple-950 space-y-1.5 shadow-2xs">
-                <div className="flex items-center gap-1.5 font-bold text-purple-700">
-                  <Sparkles className="w-4 h-4 text-purple-600" />
-                  <span>AI Adaptive Performance Mission</span>
-                  <span className="text-[10px] bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded font-bold ml-auto">
-                    Tailored For You
-                  </span>
-                </div>
-                <p className="text-purple-800 text-[11px] leading-relaxed">
-                  {currentQuestion.adaptiveReason ||
-                    "This challenge was dynamically adapted by Gemini based on your previous day's performance to target specific weak areas and reinforce 12 LPA benchmark mastery."}
-                </p>
-              </div>
-            )}
-
-            {currentQuestion?.prompt && (
-              <div className="p-3.5 rounded-xl bg-muted/60 border border-border text-xs text-foreground">
-                <span className="font-bold text-indigo-600 block mb-1">
-                  Question {selectedQIdx + 1} ({currentQuestion.weight}% Weight):
-                </span>
-                <p className="leading-relaxed whitespace-pre-line text-slate-700">{currentQuestion.prompt}</p>
-              </div>
-            )}
-
-            {/* Test Scenarios Card */}
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-2">
-              <span className="font-bold text-slate-900 block text-[11px] uppercase tracking-wider">
-                Online Judge Test Scenarios:
-              </span>
-              <ul className="text-slate-600 space-y-1 text-[11px]">
-                <li className="flex items-start gap-1.5">
-                  <span className="text-indigo-600 font-bold">1.</span>
-                  <span><strong>Base Data Integrity:</strong> Valid table joins, no Cartesian fan-out, proper alias usage.</span>
-                </li>
-                <li className="flex items-start gap-1.5">
-                  <span className="text-indigo-600 font-bold">2.</span>
-                  <span><strong>Calculated Metrics:</strong> Correct mathematical formulation for aggregates & ratios.</span>
-                </li>
-                <li className="flex items-start gap-1.5">
-                  <span className="text-indigo-600 font-bold">3.</span>
-                  <span><strong>Edge & Boundary:</strong> Filter conditions, NULL safety, order consistency.</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="pt-3 border-t border-border">
-              <h4 className="text-[11px] font-bold uppercase text-muted-foreground mb-2">Grading Rubric Breakdown:</h4>
-              <div className="space-y-1.5 text-[11px] text-slate-600">
-                <div className="flex justify-between">
-                  <span>Correct Output & Math:</span>
-                  <span className="font-bold text-slate-900">40%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Query / Code Architecture:</span>
-                  <span className="font-bold text-slate-900">20%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Edge Cases & Filtering:</span>
-                  <span className="font-bold text-slate-900">15%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Efficiency & Performance:</span>
-                  <span className="font-bold text-slate-900">10%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Naming & Style Standards:</span>
-                  <span className="font-bold text-slate-900">10%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Explanation & Context:</span>
-                  <span className="font-bold text-slate-900">5%</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-3 rounded-xl bg-indigo-50/70 border border-indigo-100 text-[11px] text-indigo-900">
-              <span className="font-bold">Strict 70% Cutoff:</span> Passing score is <strong>70%</strong>. Blank starter templates are rejected with 0%. Advancement requires solving the problem.
-            </div>
-          </div>
-
-          {/* If Power BI, provide dedicated Interactive Report URL field */}
-          {(assignmentType.includes("POWER_BI") || assignmentType.includes("DAX")) && (
-            <div className="p-4 rounded-xl bg-amber-50/60 border border-amber-200 shadow-sm space-y-2">
-              <label className="text-xs font-bold text-amber-900 block flex items-center justify-between">
-                <span>Live Interactive Dashboard URL</span>
-                <span className="text-[10px] text-amber-700 uppercase font-semibold">Portfolio Requirement</span>
-              </label>
-              <input
-                type="url"
-                value={reportUrl}
-                onChange={(e) => setReportUrl(e.target.value)}
-                placeholder="https://app.powerbi.com/view?... or NovyPro report link"
-                className="w-full p-2.5 rounded-lg bg-white border border-amber-200 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-amber-500"
-              />
-              <p className="text-[11px] text-amber-800">
-                Paste your published report link from NovyPro, Power BI Service, or GitHub repo.
-              </p>
-            </div>
-          )}
-
-          {/* Learner Notes Box */}
-          <div className="p-4 rounded-xl bg-card border border-border shadow-sm space-y-2">
-            <label className="text-xs font-bold text-foreground block">
-              Architectural Notes / Explanation (5% Weight)
-            </label>
-            <textarea
-              rows={3}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Explain your approach, choices, and how edge cases were addressed..."
-              className="w-full p-2.5 rounded-lg bg-muted/40 border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
-            />
-          </div>
-
-          {/* Past Submissions History */}
+          {/* Prior Attempts History */}
           {submissions.length > 0 && (
-            <div className="p-4 rounded-xl bg-card border border-border shadow-sm space-y-2">
+            <div className="p-4 rounded-2xl bg-card border border-border shadow-xs space-y-2">
               <span className="text-[11px] font-bold uppercase text-muted-foreground flex items-center gap-1.5">
                 <History className="w-3.5 h-3.5" /> Prior Attempts ({submissions.length})
               </span>
@@ -693,9 +588,9 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
                   <div
                     key={sub.id}
                     onClick={() => router.push(`/evaluation/${sub.id}`)}
-                    className="p-2 rounded-lg bg-muted/50 border border-border text-xs flex items-center justify-between cursor-pointer hover:bg-muted transition-colors"
+                    className="p-2.5 rounded-xl bg-muted/50 border border-border text-xs flex items-center justify-between cursor-pointer hover:bg-muted transition-colors"
                   >
-                    <span className="text-slate-600">Attempt #{submissions.length - idx}</span>
+                    <span className="text-muted-foreground font-medium">Attempt #{submissions.length - idx}</span>
                     {sub.evaluation ? (
                       <span className={`font-bold ${sub.evaluation.passed ? "text-emerald-600" : "text-amber-600"}`}>
                         Score: {sub.evaluation.score}%
@@ -710,78 +605,33 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
           )}
         </div>
 
-        {/* Right 2 Cols: Monaco Editor & Pre-Check Test Runner Output */}
-        <div className="lg:col-span-2 flex flex-col space-y-4">
-          <div className="flex flex-col rounded-2xl overflow-hidden border border-border bg-card shadow-sm h-[480px]">
-            <div className="h-10 px-4 bg-muted/60 border-b border-border flex items-center justify-between text-xs font-semibold text-foreground">
-              <span className="flex items-center gap-1.5 font-mono text-indigo-600 font-bold">
-                <FileCode className="w-4 h-4" /> {langInfo.file} ({langInfo.label})
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleRunTestCases}
-                  disabled={isRunningTests}
-                  className="px-2.5 py-1 rounded bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium text-xs border border-indigo-200 transition-colors flex items-center gap-1"
-                >
-                  {isRunningTests ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileCheck2 className="w-3 h-3" />}
-                  <span>Run Pre-Check</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="flex-1 min-h-0 bg-slate-950">
-              <CodeEditor
-                height="100%"
-                defaultLanguage={langInfo.lang}
-                theme="vs-dark"
-                value={activeCode}
-                onChange={(val) => handleCodeChange(val || "")}
-              />
-            </div>
-          </div>
-
-          {/* Test Cases Results Pane (LeetCode style) */}
-          {testResults && (
-            <div className="p-4 rounded-xl bg-card border border-border shadow-sm space-y-3 animate-fadeIn">
-              <div className="flex items-center justify-between pb-2 border-b border-border">
-                <div className="flex items-center gap-2">
-                  <span className={`w-2.5 h-2.5 rounded-full ${testResults.allPassed ? "bg-emerald-500" : "bg-amber-500"}`} />
-                  <h4 className="text-xs font-bold text-foreground">
-                    Pre-Check Test Case Results ({testResults.cases.filter((c) => c.passed).length}/{testResults.cases.length} Passed)
-                  </h4>
-                </div>
-                <span className={`text-[11px] font-bold ${testResults.allPassed ? "text-emerald-600" : "text-amber-600"}`}>
-                  {testResults.allPassed ? "All Test Scenarios Verified!" : "Action Needed Prior to Final Submission"}
-                </span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-                {testResults.cases.map((tc, idx) => (
-                  <div
-                    key={idx}
-                    className={`p-3 rounded-lg border text-xs space-y-1 ${
-                      tc.passed ? "bg-emerald-50/60 border-emerald-200 text-emerald-950" : "bg-rose-50/60 border-rose-200 text-rose-950"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between font-bold text-[11px]">
-                      <span>{tc.name}</span>
-                      {tc.passed ? (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      ) : (
-                        <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
-                      )}
-                    </div>
-                    <p className="text-[10px] text-slate-600">{tc.description}</p>
-                    <p className="text-[11px] font-mono mt-1 pt-1 border-t border-slate-200/60 font-semibold">{tc.details}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+        {/* Right 2 Columns: Dynamic Submission Panel */}
+        <div className="lg:col-span-2">
+          <SubmissionPanel
+            modality={modality}
+            guidance={guidance}
+            activeCode={activeCode}
+            onCodeChange={handleCodeChange}
+            langInfo={langInfo}
+            externalUrl={externalUrl}
+            onExternalUrlChange={setExternalUrl}
+            uploadedFiles={uploadedFiles}
+            onAddFile={(f) => setUploadedFiles((prev) => [...prev, f])}
+            onRemoveFile={(idx) => setUploadedFiles((prev) => prev.filter((_, i) => i !== idx))}
+            uploadedScreenshots={uploadedScreenshots}
+            onAddScreenshot={(s) => setUploadedScreenshots((prev) => [...prev, s])}
+            onRemoveScreenshot={(idx) => setUploadedScreenshots((prev) => prev.filter((_, i) => i !== idx))}
+            notes={notes}
+            onNotesChange={setNotes}
+            onRunPreCheck={handleRunTestCases}
+            isRunningTests={isRunningTests}
+            testResults={testResults}
+          />
         </div>
       </div>
 
       {/* Bottom Submit Action Bar */}
-      <div className="p-5 rounded-xl bg-card border border-border flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+      <div className="p-5 rounded-2xl bg-card border border-border flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
         <div className="space-y-1 text-center sm:text-left">
           <div className="flex items-center justify-center sm:justify-start gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             <span>Ready for Scoring?</span>
@@ -790,13 +640,13 @@ export default function AssignmentPage({ params }: { params: { assignId: string 
             Step 4: Automated Evaluation & Scorecard
           </h3>
           <p className="text-xs text-muted-foreground max-w-xl">
-            Upon submission, our evaluation engine analyzes correctness, query logic, edge cases, and performance to generate your report card.
+            Upon submission, our evaluation engine analyzes correctness, queries, deliverables, and performance to generate your report card.
           </p>
         </div>
         <button
           onClick={handleSubmit}
           disabled={isSubmitting}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-masai-red hover:bg-masai-red/90 text-white text-xs font-semibold shadow-sm transition-colors disabled:opacity-50 whitespace-nowrap"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-masai-red hover:bg-masai-red/90 text-white text-xs font-semibold shadow-xs transition-colors disabled:opacity-50 whitespace-nowrap"
         >
           {isSubmitting ? (
             <>

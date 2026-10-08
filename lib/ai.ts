@@ -142,9 +142,50 @@ export async function evaluateAssignmentSubmission(
   assignmentDescription: string,
   submittedCode: string,
   learnerNotes?: string,
-  category: string = "SQL & Analytics Modeling"
+  category: string = "SQL & Analytics Modeling",
+  referenceSolution?: string | null
 ): Promise<EvaluationResult> {
-  const systemInstruction = `You are a Principal Business Analyst & Senior Analytics Engineer evaluating code submissions against strict commercial standards.
+  const catUpper = (category || "").toUpperCase();
+  let modalityRigor = "";
+
+  if (catUpper.includes("EXCEL")) {
+    modalityRigor = `
+MODALITY-SPECIFIC RIGOR (EXCEL WORKBOOK EVALUATION):
+- The submission includes actual parsed Excel data: sheets, cell grids, row/column counts, and exact workbook formulas (e.g. SUMIFS, XLOOKUP, INDEX/MATCH, nested IFs, dynamic arrays).
+- Evaluate whether formulas are used dynamically instead of hardcoded numbers.
+- Check business logic correctness: do the formulas solve the business KPI/metric asked in the prompt?
+- Evaluate workbook layout: raw data vs calculation sheets vs executive dashboard presentation.
+- If no formulas are present or only static values were pasted where calculations were required, heavily penalize queryLogic and correctness.`;
+  } else if (catUpper.includes("PYTHON") || catUpper.includes("JUPYTER")) {
+    modalityRigor = `
+MODALITY-SPECIFIC RIGOR (PYTHON / JUPYTER NOTEBOOK EVALUATION):
+- The submission includes actual parsed code cells, markdown commentary, import statements, data transformations, and cell execution outputs from the .ipynb notebook or .py script.
+- Evaluate pandas/numpy best practices: vectorized operations vs inefficient python loops, method chaining, handling nulls/missing values, data types.
+- Check data pipeline flow: ingestion -> cleaning -> feature engineering -> analysis/aggregation -> visualization.
+- Verify whether cells were actually executed (outputs present) and whether those outputs answer the analytical questions.
+- Penalize bare scripts with no comments, broken executions, or missing required libraries.`;
+  } else if (catUpper.includes("POWER_BI") || catUpper.includes("DAX")) {
+    modalityRigor = `
+MODALITY-SPECIFIC RIGOR (POWER BI & DAX MODEL EVALUATION):
+- The submission includes actual parsed data model schema, table definitions, relationships (cardinality & direction), and DAX measures extracted from the .pbix deliverable.
+- Evaluate DAX measures: filter context manipulation (CALCULATE, FILTER, ALL, ALLEXCEPT, KEEPFILTERS), row iterators (SUMX, AVERAGEX), safe division (DIVIDE), time intelligence (TOTALYTD, SAMEPERIODLASTYEAR).
+- Evaluate data model architecture: star schema vs snowflake vs flat wide tables, avoiding bidirectional cross-filtering hazards.
+- Check KPI business relevance and accuracy according to the problem requirements.`;
+  } else if (catUpper.includes("BRD") || catUpper.includes("DOCUMENT") || catUpper.includes("BUSINESS") || catUpper.includes("REPORT")) {
+    modalityRigor = `
+MODALITY-SPECIFIC RIGOR (BUSINESS REQUIREMENTS DOCUMENT / ANALYTICAL REPORT):
+- The submission includes actual text extracted from uploaded PDF/DOCX deliverables or business architecture notes.
+- Evaluate BRD quality: executive summary, business problem statement, stakeholder matrix, functional vs non-functional requirements, data dictionary, metrics/KPI calculation definitions, acceptance criteria (Given/When/Then), wireframe/reporting mockups, and edge case assumptions.
+- Verify analytical depth and clarity — penalize generic ChatGPT fluff or superficial one-page summaries.`;
+  } else if (catUpper.includes("DBT") || catUpper.includes("GIT")) {
+    modalityRigor = `
+MODALITY-SPECIFIC RIGOR (DBT / GITHUB DATA ENGINEERING REPOSITORY):
+- The submission includes repository structure, file tree, committed code, and README documentation.
+- Evaluate dbt modularity: staging (stg_), intermediate (int_), marts/marts analytics layers, Jinja macros, YAML source tests, and ref() / source() lineage.
+- Evaluate git hygiene and documentation quality.`;
+  }
+
+  const systemInstruction = `You are a Principal Business Analyst & Senior Analytics Engineer evaluating submissions against strict commercial standards.
 Evaluate with high rigor across 6 rubric dimensions (Total 100%):
 1. Correctness & Deterministic Output (40% Weight)
 2. Query / Model Logic & Structure (20% Weight)
@@ -155,9 +196,12 @@ Evaluate with high rigor across 6 rubric dimensions (Total 100%):
 
 CRITICAL RIGOR RULES:
 - You are evaluating candidates for a ₹12,00,000+ PA (12 LPA) Senior Analytics Engineering / Business Analyst role.
-- If the code is just placeholder starter code, a trivial query (e.g. SELECT 1), empty, or fails to implement the required table joins/aggregations/metrics requested in the prompt, award a score of 0 - 25% and set passed = false.
-- Do NOT award sympathy points for incomplete attempts or merely having keywords without actual logic.
+- If a Reference Solution is provided, compare the student's submission against it. The student must have solved the core requirements accurately.
+- When file content (Excel sheets, Jupyter cells, DAX measures, PDF/DOCX text, GitHub trees) is provided in the submission details below, evaluate the ACTUAL extracted content with full technical depth.
+- If the submission is just starter code, empty, or fails to implement the required calculations/metrics/logic requested in the prompt, award a score of 0 - 25% and set passed = false.
+- Do NOT award sympathy points for incomplete attempts or merely having filenames without meaningful content.
 - Benchmark passing standard is strictly 70%.
+${modalityRigor}
 
 Output strictly in valid JSON matching this schema:
 {
@@ -173,21 +217,28 @@ Output strictly in valid JSON matching this schema:
     "readability": <number 0-10>,
     "explanation": <number 0-5>
   },
-  "codeDiff": "<Clean, production-grade refactored code with commentary>",
-  "detailedFeedback": "<Detailed, constructive feedback on how to elevate the code to top 1% industry standards>",
+  "codeDiff": "<Clean, production-grade refactored code/formula/solution with commentary>",
+  "detailedFeedback": "<Detailed, constructive feedback on how to elevate the deliverable to top 1% industry standards>",
   "remedialTasks": ["<topic 1 to review>", "<topic 2 to review>"]
 }`;
+
+  // Truncate notes/extracted content if overly large to prevent API errors (up to 12,000 characters)
+  const safeNotes = (learnerNotes || "No notes provided").length > 12000
+    ? (learnerNotes || "").substring(0, 12000) + "\n... [Remaining extracted content truncated for model context]"
+    : learnerNotes || "No notes provided";
 
   const userPrompt = `Assignment: ${assignmentTitle}
 Description: ${assignmentDescription}
 Category: ${category}
 
-Learner Notes:
-${learnerNotes || "No notes provided"}
+${referenceSolution ? `Reference Gold-Standard Benchmark Solution:\n\`\`\`\n${referenceSolution}\n\`\`\`\n` : ""}
 
-Submitted Code:
+Learner Submission Notes & Extracted Deliverable Data:
+${safeNotes}
+
+Submitted Code / Primary Input:
 \`\`\`
-${submittedCode}
+${submittedCode || "(Deliverable submitted via attached files/links; see extracted details above)"}
 \`\`\``;
 
   // STEP 1: Attempt Gemini
@@ -207,11 +258,84 @@ ${submittedCode}
   }
 
   // STEP 2: Deterministic Rule-Based Fallback
-  return deterministicCodeEvaluation(submittedCode, category);
+  return deterministicCodeEvaluation(submittedCode, category, safeNotes);
 }
 
-function deterministicCodeEvaluation(submittedCode: string, category: string): EvaluationResult {
-  const clean = submittedCode.trim();
+function deterministicCodeEvaluation(submittedCode: string, category: string, extraContent?: string): EvaluationResult {
+  const clean = (submittedCode || "").trim();
+  const catUpper = (category || "").toUpperCase();
+  const extra = (extraContent || "").trim();
+
+  // If this is a file upload submission (Excel, Python, PowerBI, Document) and has extraContent
+  if (catUpper.includes("EXCEL")) {
+    const hasFormulas = /Formula|SUM|AVERAGE|COUNT|VLOOKUP|XLOOKUP|IF/i.test(extra);
+    const score = hasFormulas ? 70 : 40;
+    return {
+      score,
+      passed: score >= 70,
+      strengths: hasFormulas ? ["Excel workbook contains analytical formulas"] : ["Workbook file structure parsed"],
+      weakAreas: hasFormulas ? ["Ensure all KPIs use dynamic formula references"] : ["Add dynamic Excel formulas (SUMIFS, XLOOKUP) instead of hardcoded numbers"],
+      rubricScores: {
+        correctness: Math.round(score * 0.4),
+        queryLogic: Math.round(score * 0.2),
+        edgeCases: Math.round(score * 0.15),
+        performance: Math.round(score * 0.1),
+        readability: Math.round(score * 0.1),
+        explanation: Math.round(score * 0.05),
+      },
+      codeDiff: "-- Excel submission evaluated based on workbook structure and formulas.",
+      detailedFeedback: `Workbook evaluated under standard analytical rubric. Total score: ${score}%.`,
+      remedialTasks: score >= 70 ? [] : ["Review advanced Excel modeling and formula patterns"],
+    };
+  }
+
+  if (catUpper.includes("PYTHON") || catUpper.includes("JUPYTER")) {
+    const combined = clean + "\n" + extra;
+    const hasImports = /import\s+pandas|import\s+numpy|import\s+matplotlib|import\s+seaborn/i.test(combined);
+    const hasTransforms = /\.groupby|\.merge|\.apply|\.read_csv|\.plot/i.test(combined);
+    const score = hasImports && hasTransforms ? 75 : hasImports ? 50 : 30;
+    return {
+      score,
+      passed: score >= 70,
+      strengths: hasImports ? ["Data manipulation libraries correctly imported and utilized"] : [],
+      weakAreas: !hasTransforms ? ["Include groupby, merge, or data transformation pipelines"] : ["Optimize data operations with vectorization"],
+      rubricScores: {
+        correctness: Math.round(score * 0.4),
+        queryLogic: Math.round(score * 0.2),
+        edgeCases: Math.round(score * 0.15),
+        performance: Math.round(score * 0.1),
+        readability: Math.round(score * 0.1),
+        explanation: Math.round(score * 0.05),
+      },
+      codeDiff: clean || "# Notebook submission evaluated based on extracted code cells.",
+      detailedFeedback: `Python submission scored ${score}%.`,
+      remedialTasks: score >= 70 ? [] : ["Review pandas transformation pipelines and EDA workflows"],
+    };
+  }
+
+  if (catUpper.includes("POWER_BI") || catUpper.includes("DAX")) {
+    const hasDax = /DAX Measure:|CALCULATE|SUM|AVERAGE|DIVIDE/i.test(extra + "\n" + clean);
+    const score = hasDax ? 75 : 45;
+    return {
+      score,
+      passed: score >= 70,
+      strengths: hasDax ? ["DAX measures detected in Power BI model"] : ["Power BI deliverable verified"],
+      weakAreas: hasDax ? ["Add time intelligence measures (e.g. TOTALYTD)"] : ["Add explicit DAX measures with CALCULATE and DIVIDE"],
+      rubricScores: {
+        correctness: Math.round(score * 0.4),
+        queryLogic: Math.round(score * 0.2),
+        edgeCases: Math.round(score * 0.15),
+        performance: Math.round(score * 0.1),
+        readability: Math.round(score * 0.1),
+        explanation: Math.round(score * 0.05),
+      },
+      codeDiff: clean || "-- Power BI deliverable evaluated based on data model and DAX measures.",
+      detailedFeedback: `Power BI model scored ${score}%.`,
+      remedialTasks: score >= 70 ? [] : ["Review DAX filter context and star schema modeling"],
+    };
+  }
+
+  // Default: SQL Evaluation
   const norm = clean.toLowerCase();
   const hasFrom = /\bfrom\b/.test(norm);
 
@@ -289,27 +413,30 @@ export async function evaluateCodeSubmission(
   arg1: string,
   arg2?: string,
   arg3?: string,
-  arg4?: string
+  arg4?: string,
+  referenceSolution?: string | null,
+  learnerNotes?: string
 ): Promise<EvaluationResult> {
-  // Check if first arg looks like code (starts with SELECT/WITH/import/def/etc) or title
-  if (arg1.toLowerCase().includes("select") || arg1.toLowerCase().includes("from") || arg1.includes("\n") || (arg2 && arg2.length < 50)) {
-    // evaluateCodeSubmission(submittedCode, assignmentTitle, questionPrompt, category)
+  // If called as (submittedCode, assignmentTitle, questionPrompt, category, referenceSolution, learnerNotes)
+  if (arg2 !== undefined) {
     return evaluateAssignmentSubmission(
       arg2 || "Assignment Evaluation",
       arg3 || "Technical Problem",
-      arg1,
-      undefined,
-      arg4 || "SQL & Analytics Modeling"
+      arg1 || "",
+      learnerNotes,
+      arg4 || "SQL & Analytics Modeling",
+      referenceSolution
     );
   }
 
-  // evaluateAssignmentSubmission(title, description, code, notes, category)
+  // Fallback for single-arg or legacy call (title, description, code, notes, category, referenceSolution)
   return evaluateAssignmentSubmission(
     arg1,
     arg2 || "",
     arg3 || "",
-    undefined,
-    arg4 || "SQL & Analytics Modeling"
+    learnerNotes,
+    arg4 || "SQL & Analytics Modeling",
+    referenceSolution
   );
 }
 

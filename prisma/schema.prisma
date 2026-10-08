@@ -152,6 +152,8 @@ model Assignment {
   description String
   deadlineHours Int          @default(24)
   rubric      String?        // JSON rubric breakdown
+  toolGuidance String?       // JSON: {primaryTool, worksInPlatform, submissionTypes[], ...}
+  skillsTested String?       // JSON array: ["SQL Joins", "Window Functions", ...]
   questions   AssignmentQuestion[]
   submissions Submission[]
   createdAt   DateTime       @default(now())
@@ -165,6 +167,7 @@ model AssignmentQuestion {
   category       String     @default("SQL")
   prompt         String
   starterCode    String?
+  referenceSolution String? // Gold-standard solution for deterministic comparison
   sampleData     String?
   weight         Int        @default(20)
   isAdaptive     Boolean    @default(false)
@@ -178,6 +181,10 @@ model Submission {
   assignment   Assignment  @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   submittedCode String
   notes        String?
+  fileUrls     String?     // JSON array of uploaded file paths/URLs
+  screenshotUrls String?   // JSON array of screenshot image paths
+  externalUrl  String?     // GitHub repo, Colab notebook, Power BI dashboard URL
+  submissionType String    @default("CODE") // CODE, FILE, URL, MIXED
   status       String      @default("EVALUATED") // PENDING, EVALUATING, EVALUATED
   evaluation   Evaluation?
   createdAt    DateTime    @default(now())
@@ -270,6 +277,10 @@ model ProjectMilestone {
   title       String
   deliverable String
   isCompleted Boolean  @default(false)
+  submittedUrl    String?   // GitHub PR, Colab link, etc.
+  submittedFile   String?   // Uploaded file path
+  submittedNotes  String?   // Milestone-specific explanation
+  completedAt     DateTime? // When actually marked complete with evidence
   createdAt   DateTime @default(now())
 }
 

@@ -52,7 +52,7 @@ export interface POTD {
 }
 
 // -------------------------------------------------------------
-// 1. SQLite Persistence & Caching for Daily Dynamic POTD
+// 1. Database Persistence & Caching for Daily Dynamic POTD
 // -------------------------------------------------------------
 let isPOTDCacheReady = false;
 
@@ -61,9 +61,9 @@ async function ensurePOTDCacheTable() {
   try {
     await db.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS daily_potd_cache (
-        date_key TEXT PRIMARY KEY,
+        date_key VARCHAR(64) PRIMARY KEY,
         potd_json TEXT NOT NULL,
-        created_at TEXT NOT NULL
+        created_at TIMESTAMPTZ DEFAULT NOW()
       );
     `);
     isPOTDCacheReady = true;
@@ -76,7 +76,7 @@ async function getCachedPOTD(dateKey: string): Promise<POTD | null> {
   await ensurePOTDCacheTable();
   try {
     const rows: any[] = await db.$queryRawUnsafe(
-      `SELECT potd_json FROM daily_potd_cache WHERE date_key = ? LIMIT 1;`,
+      `SELECT potd_json FROM daily_potd_cache WHERE date_key = $1 LIMIT 1;`,
       dateKey
     );
     if (rows && rows.length > 0 && rows[0].potd_json) {
@@ -92,12 +92,13 @@ async function setCachedPOTD(dateKey: string, potd: POTD): Promise<void> {
   await ensurePOTDCacheTable();
   try {
     const jsonStr = JSON.stringify(potd);
-    const nowIso = new Date().toISOString();
     await db.$executeRawUnsafe(
-      `INSERT OR REPLACE INTO daily_potd_cache (date_key, potd_json, created_at) VALUES (?, ?, ?);`,
+      `INSERT INTO daily_potd_cache (date_key, potd_json, created_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (date_key) DO UPDATE
+       SET potd_json = EXCLUDED.potd_json, created_at = NOW();`,
       dateKey,
-      jsonStr,
-      nowIso
+      jsonStr
     );
   } catch (err) {
     console.warn("Error saving daily_potd_cache:", err);
