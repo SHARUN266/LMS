@@ -14,6 +14,8 @@ import {
   ShieldCheck,
   Target,
   Sparkles,
+  RotateCcw,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,10 +27,15 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ isOpen, onClose, onProfileUpdated }: SettingsModalProps) {
-  const [activeTab, setActiveTab] = useState<"profile" | "discipline" | "ai" | "system">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "discipline" | "ai" | "system" | "danger">("profile");
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  // Reset / Danger Zone states
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetConfirmText, setResetConfirmText] = useState("");
+  const [resetStatus, setResetStatus] = useState<string | null>(null);
 
   // Profile States
   const [name, setName] = useState("Sharun");
@@ -191,6 +198,16 @@ export function SettingsModal({ isOpen, onClose, onProfileUpdated }: SettingsMod
             }`}
           >
             <Database className="w-3.5 h-3.5" /> Database & Health
+          </button>
+          <button
+            onClick={() => setActiveTab("danger")}
+            className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-semibold rounded-t-lg transition-all border-b-2 ml-auto ${
+              activeTab === "danger"
+                ? "border-rose-600 text-rose-600 bg-rose-50/40 font-bold"
+                : "border-transparent text-slate-400 hover:text-rose-600"
+            }`}
+          >
+            <RotateCcw className="w-3.5 h-3.5" /> Start Fresh
           </button>
         </div>
 
@@ -428,6 +445,94 @@ export function SettingsModal({ isOpen, onClose, onProfileUpdated }: SettingsMod
                       <span className="text-xs font-bold text-slate-800">Evaluation Engine</span>
                       <span className="text-xs font-semibold text-slate-600">6-Rubric Vector Matrix</span>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 5: Start Fresh / Reset Curriculum */}
+              {activeTab === "danger" && (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl border border-rose-200 bg-rose-50/70 space-y-3">
+                    <div className="flex items-center gap-2 text-rose-700">
+                      <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                      <h4 className="text-sm font-bold">Restart Curriculum From Day 1</h4>
+                    </div>
+                    <p className="text-xs text-rose-800 leading-relaxed">
+                      Ye action aapka poora learning path <strong>Day 1 se shuru</strong> kar dega. Saare completed days,
+                      assignments, AI scorecards, study focus hours, aur streak wapas <strong>0</strong> par reset ho jayenge.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/80 space-y-2 text-xs text-slate-700">
+                    <p className="font-bold text-slate-800 uppercase tracking-wider text-[11px]">
+                      Reset hone par kya hoga:
+                    </p>
+                    <ul className="space-y-1.5 list-disc pl-4 text-slate-600">
+                      <li><strong>Day 1</strong> active aur unlocked state mein set ho jayega.</li>
+                      <li><strong>Days 2 se 90</strong> wapas locked ho jayenge (curriculum sequence maintain rahegi).</li>
+                      <li>Saare test submissions aur evaluation reports clear ho jayenge.</li>
+                      <li>Study sessions aur streak count clean 0 ho jayega.</li>
+                    </ul>
+                  </div>
+
+                  <div className="pt-2 space-y-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        Confirmation ke liye type karein: <span className="font-mono text-rose-600 font-black">RESET</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={resetConfirmText}
+                        onChange={(e) => setResetConfirmText(e.target.value.toUpperCase())}
+                        placeholder="Type RESET here"
+                        className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600 font-mono text-slate-900"
+                      />
+                    </div>
+
+                    {resetStatus && (
+                      <div className="p-3 rounded-xl bg-slate-900 text-white text-xs flex items-center gap-2 animate-in fade-in">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        <span>{resetStatus}</span>
+                      </div>
+                    )}
+
+                    <Button
+                      type="button"
+                      disabled={resetConfirmText !== "RESET" || isResetting}
+                      onClick={async () => {
+                        setIsResetting(true);
+                        setResetStatus("Resetting all days and evaluations in Neon DB...");
+                        try {
+                          const res = await fetch("/api/profile/reset", {
+                            method: "POST",
+                          });
+                          const data = await res.json();
+                          if (data.success) {
+                            setResetStatus("Curriculum successfully reset! Reloading platform in 1 second...");
+                            setTimeout(() => {
+                              window.location.href = "/dashboard";
+                            }, 1200);
+                          } else {
+                            setResetStatus(data.error || "Reset failed. Try again.");
+                            setIsResetting(false);
+                          }
+                        } catch (err: any) {
+                          setResetStatus(err.message || "Reset failed.");
+                          setIsResetting(false);
+                        }
+                      }}
+                      className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-xs gap-2 shadow-sm transition-all"
+                    >
+                      {isResetting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" /> Resetting Curriculum...
+                        </>
+                      ) : (
+                        <>
+                          <RotateCcw className="w-4 h-4" /> Reset All Progress & Start Over
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </div>
               )}
